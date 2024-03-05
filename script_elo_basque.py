@@ -25,7 +25,7 @@ def get_basque_elos():
         url_elovasco = "https://drive.google.com/uc?id=1pmXsi5xUikUWMo5CSpA0zYpwhTnMIYsc"
         gdown.download(url_elovasco, elovasco_file, quiet=True)
     #Warn about file being dated in 2022
-    print("Fichero de enero de 2022, NO se comprueba si hay alguno más reciente")
+    print("Fichero de jugadores vascos de enero de 2022, NO se comprueba si hay alguno más reciente")
     #Open zip file
     with ZipFile(elovasco_file) as archive:
         #Get databases from file
@@ -63,7 +63,7 @@ def get_fide_elos():
         #Time is not needed, just the date. Make it human readable
         human_date = str(date[2]) + "/" + str(date[1]) + "/" + str(date[0])
         #Some formatting
-        print(f"ELOs a fecha de {human_date}:")
+        print(f"ELOs FIDE a fecha de {human_date}:")
         #Read the whole XML into a pandas dataframe
         return pandas.read_xml(archive.open(xml_file))
 
