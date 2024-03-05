@@ -90,7 +90,8 @@ def print_club_fide_elos(df_clubs, df_basque_players, df_fide_players):
                         player_name_temp[-2] = player_name_temp[-2] + ","
                         player_name = " ".join(player_name_temp)
                 #Search for the players in the FIDE list.
-                player_id = df_fide_players[df_fide_players.name.isin([player_name])]
+                player_id = df_fide_players[df_fide_players.name.str.contains(player_name,
+                                                                              case=False)]
                 #If there's a match, print only some fields.
                 if not player_id.empty:
                     #fideid name sex rating birthday
