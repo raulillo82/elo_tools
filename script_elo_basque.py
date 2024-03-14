@@ -96,12 +96,14 @@ def print_club_fide_elos(df_clubs, df_basque_players, df_fide_players):
                 if not player_id.empty:
                     #fideid name sex rating birthday
                     print(player_name + " - ELO FIDE: " + player_id.rating.to_string(index=False)
-                          + " - ESTADO: " + player_id.flag.to_string(index=False))
+                          + " - ESTADO: " + player_id.flag.to_string(index=False)
+                          + " - ELO VASCO: " + str(player.ELO))
                 else:
                     print(player_name)
             print()
 
 [df_basque_clubs, df_basque_players] = get_basque_elos()
+#print(df_basque_players)
 
 #Get clubs from Araba
 #Search for the players in the list.
