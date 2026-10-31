@@ -14,7 +14,7 @@ from unittest import mock
 from urllib.error import HTTPError
 from zipfile import ZipFile, ZipInfo
 
-from web import lists, rosters
+from web import i18n, lists, rosters
 from web.accounts import AccountError, Accounts
 from web.app import create_app, limiter
 from web.lists import PlayerList, build_list
@@ -43,6 +43,31 @@ TEAM_PAGE = """<table><tr><th>Brd.</th><th>Name</th><th>FIDE ID</th></tr>
 <tr><td>1</td><td><a href="/x">Soto, Ana</a></td><td>
   123</td></tr><tr><td>2</td><td>Rey, Eva</td><td>456</td></tr></table>
 <table><tr><th>Rd.</th></tr><tr><td>1</td></tr></table>"""
+
+
+class TextsTest(unittest.TestCase):
+    def test_both_languages_use_the_same_values(self):
+        for key, (basque, spanish) in {**i18n.TEXTS, **i18n.BROWSER_TEXTS}.items():
+            self.assertEqual(sorted(re.findall(r"\{\w+\}", basque)),
+                             sorted(re.findall(r"\{\w+\}", spanish)), key)
+
+    def test_nothing_is_left_empty(self):
+        for key, pair in {**i18n.TEXTS, **i18n.BROWSER_TEXTS}.items():
+            self.assertEqual(len(pair), 2, key)
+            self.assertTrue(all(pair), key)
+
+    def test_every_text_in_the_web_exists(self):
+        web = Path(__file__).parent / "web"
+        used = set()
+        for path in (web / "templates").glob("*.html"):
+            used |= set(re.findall(r"""\bt\('(\w+)'""", path.read_text(encoding="utf-8")))
+        used |= set(re.findall(r"""\bt\("(\w+)"\s*[,)]""",
+                               (web / "static" / "app.js").read_text(encoding="utf-8")))
+        self.assertEqual(used - set(i18n.TEXTS) - set(i18n.BROWSER_TEXTS), set())
+
+    def test_months(self):
+        self.assertEqual(i18n.month_label("eu", 2026, 10), "2026ko urria")
+        self.assertEqual(i18n.month_label("es", 2026, 10), "octubre de 2026")
 
 
 class RostersTest(unittest.TestCase):
@@ -155,12 +180,13 @@ class PlayerListTest(unittest.TestCase):
 
     def test_newest_list_and_label(self):
         write_list(self.folder, "players-2027-01.sqlite")
-        self.assertEqual(self.players.label(), {"text": "enero de 2027", "official": True})
+        self.assertEqual(self.players.label("es"), {"text": "enero de 2027", "official": True})
+        self.assertEqual(self.players.label(), {"text": "2027ko urtarrila", "official": True})
 
     def test_chosen_list(self):
         write_list(self.folder, "players-2027-01.sqlite")
         chosen = PlayerList(self.folder, "2026-10")
-        self.assertEqual(chosen.label(), {"text": "octubre de 2026", "official": False})
+        self.assertEqual(chosen.label("es"), {"text": "octubre de 2026", "official": False})
 
 
 class UpdateListTest(unittest.TestCase):
@@ -317,7 +343,7 @@ class WebTest(unittest.TestCase):
         self.join()
         other = self.app.test_client()
         response = other.post("/login", data={"password": PASSWORD, "csrf": self.csrf(other)})
-        self.assertIn("Contraseña incorrecta", response.get_data(as_text=True))
+        self.assertIn("Pasahitz okerra", response.get_data(as_text=True))
         self.assertEqual(other.get("/").status_code, 302)
 
     def test_login_from_the_device(self):
@@ -402,6 +428,52 @@ class WebTest(unittest.TestCase):
         cookies = "\n".join(response.headers.getlist("Set-Cookie"))
         self.assertEqual(cookies.count("Secure"), 2)
         self.assertEqual(cookies.count("HttpOnly"), 2)
+
+    def set_language(self, code, next_page="/login"):
+        return self.client.post("/language", data={"lang": code, "next": next_page,
+                                                   "csrf": self.csrf()})
+
+    def test_basque_comes_first_and_is_the_default(self):
+        text = self.client.get("/login").get_data(as_text=True)
+        self.assertIn('<html lang="eu">', text)
+        self.assertIn("Gonbidapen bidezko sarbidea", text)
+        self.assertLess(text.index("flag-eu.svg"), text.index("flag-es.svg"))
+
+    def test_chosen_language_stays(self):
+        response = self.set_language("es")
+        self.assertEqual(response.headers["Location"], "/login")
+        for _ in range(2):
+            text = self.client.get("/login").get_data(as_text=True)
+            self.assertIn('<html lang="es">', text)
+            self.assertIn("Acceso solo por invitación", text)
+        self.assertIn('lang="es"', self.client.get("/privacidad").get_data(as_text=True))
+
+    def test_unknown_language_is_ignored(self):
+        self.set_language("xx")
+        self.assertIn('<html lang="eu">', self.client.get("/login").get_data(as_text=True))
+
+    def test_language_cant_redirect_to_other_sites(self):
+        for target in ("https://example.com/", "//example.com/", "/\\example.com"):
+            location = self.set_language("es", target).headers["Location"]
+            self.assertEqual(location, "/", target)
+
+    def test_language_of_the_results(self):
+        self.join()
+        self.assertEqual(self.api("check", {"entries": [1]}).get_json()["list"]["text"],
+                         "2026ko urria")
+        self.set_language("es", "/")
+        self.assertEqual(self.api("check", {"entries": [1]}).get_json()["list"]["text"],
+                         "octubre de 2026")
+
+    def test_errors_are_translated(self):
+        token = self.accounts.create_invite("Ane", "Amurrio")
+        path = f"/invite/{token}"
+        text = self.client.post(path, data={"password": "corta", "csrf": self.csrf(path=path)})
+        self.assertIn("gutxienez 10 karaktere", text.get_data(as_text=True))
+
+    def test_browser_texts_are_in_the_page(self):
+        self.join()
+        self.assertIn("Ordena zuzena", self.client.get("/").get_data(as_text=True))
 
     def test_privacy_headers(self):
         headers = self.client.get("/login").headers

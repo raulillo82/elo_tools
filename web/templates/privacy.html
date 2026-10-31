@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Privacidad{% endblock %}
+{% block title %}{{ t('privacy') }}{% endblock %}
 {% block content %}
-<h1>Privacidad</h1>
-<p>Esta herramienta ayuda a responsables de clubes alaveses a comprobar un orden de fuerzas. No es un servicio de la federación, y el envío oficial sigue siendo por correo.</p>
+<h1>{{ t('privacy') }}</h1>
+<p>{{ t('privacy_intro') }}</p>
 <ul>
-  <li><strong>Jugadores:</strong> nombre, ELO, estado e ID, tomados de la lista pública de la FIDE. No se guarda el año de nacimiento ni el sexo.</li>
-  <li><strong>Órdenes de fuerzas:</strong> el servidor los comprueba y no los conserva. Si activas el guardado, se quedan solo en este dispositivo.</li>
-  <li><strong>Cuentas:</strong> nombre de pila, club y contraseña cifrada.</li>
+  <li>{{ t('privacy_players')|safe }}</li>
+  <li>{{ t('privacy_orders')|safe }}</li>
+  <li>{{ t('privacy_accounts')|safe }}</li>
+  <li>{{ t('privacy_language')|safe }}</li>
 </ul>
-<p>Para corregir o retirar datos, habla con la persona que te dio acceso.</p>
+<p>{{ t('privacy_contact') }}</p>
 {% endblock %}

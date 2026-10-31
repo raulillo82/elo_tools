@@ -1,22 +1,33 @@
 <!doctype html>
-<html lang="es">
+<html lang="{{ language }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf" content="{{ csrf }}">
-  <title>{% block title %}Orden de fuerzas{% endblock %}</title>
+  <title>{% block title %}{{ t('brand') }}{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header>
-    <a class="brand" href="{{ url_for('index') }}">Orden de fuerzas</a>
+    <a class="brand" href="{{ url_for('index') }}">{{ t('brand') }}</a>
+    <form class="languages" method="post" action="{{ url_for('language') }}" aria-label="{{ t('language') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ request.script_root }}{{ request.path }}">
+      {% for code, label in (('eu', 'Euskara'), ('es', 'Español')) %}
+      <button name="lang" value="{{ code }}" lang="{{ code }}" title="{{ label }}" aria-label="{{ label }}"
+              {% if code == language %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}>
+        <img src="{{ url_for('static', filename='flag-' + code + '.svg') }}" alt="" width="28" height="18">
+        <span>{{ code|upper }}</span>
+      </button>
+      {% endfor %}
+    </form>
     {% if user %}
     <nav>
       <span>{{ user['name'] }} · {{ user['club'] }}</span>
-      {% if user['is_admin'] %}<a href="{{ url_for('admin') }}">Accesos</a>{% endif %}
+      {% if user['is_admin'] %}<a href="{{ url_for('admin') }}">{{ t('access') }}</a>{% endif %}
       <form method="post" action="{{ url_for('logout') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button class="link">Salir</button>
+        <button class="link">{{ t('logout') }}</button>
       </form>
     </nav>
     {% endif %}
@@ -25,7 +36,7 @@
     {% for message in get_flashed_messages() %}<p class="notice bad">{{ message }}</p>{% endfor %}
     {% block content %}{% endblock %}
   </main>
-  <footer><a href="{{ url_for('privacy') }}">Privacidad</a></footer>
+  <footer><a href="{{ url_for('privacy') }}">{{ t('privacy') }}</a></footer>
   {% block scripts %}{% endblock %}
 </body>
 </html>

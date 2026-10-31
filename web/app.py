@@ -16,11 +16,13 @@ from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from web.accounts import AccountError, Accounts, MIN_PASSWORD
+from web.i18n import DEFAULT_LANGUAGE, LANGUAGES, browser_texts, text
 from web.lists import PlayerList
 from web.rosters import load_rosters
 from web.rules import DEFAULT_MARGIN, check_order
 
 DEVICE_COOKIE = "elo_device"
+LANGUAGE_COOKIE = "elo_lang"
 MAX_PLAYERS = 30
 YEAR = 365 * 24 * 3600
 
@@ -60,6 +62,8 @@ def create_app(config=None):
     @app.before_request
     def load_user():
         g.user = None
+        language = request.cookies.get(LANGUAGE_COOKIE)
+        g.language = language if language in LANGUAGES else DEFAULT_LANGUAGE
         device = request.cookies.get(DEVICE_COOKIE)
         #The device must still exist in every request: removing it closes the session
         user = accounts.user_of_device(device)
@@ -72,7 +76,8 @@ def create_app(config=None):
 
     @app.context_processor
     def template_values():
-        return {"csrf": csrf_token(), "user": g.user}
+        return {"csrf": csrf_token(), "user": g.user, "language": g.language, "languages": LANGUAGES,
+                "t": lambda key, **values: text(g.language, key, **values)}
 
     @app.after_request
     def security_headers(response):
@@ -99,8 +104,8 @@ def create_app(config=None):
     @app.get("/")
     @login_required
     def index():
-        return render_template("tool.html", list_label=players.label(),
-                               margin=app.config["MARGIN"], max_players=MAX_PLAYERS)
+        return render_template("tool.html", list_label=players.label(g.language),
+                               browser_texts=browser_texts(g.language))
 
     @app.route("/login", methods=["GET", "POST"])
     @limiter.limit("10 per minute", methods=["POST"], key_func=get_remote_address)
@@ -113,7 +118,7 @@ def create_app(config=None):
                 start_session(user)
                 #Renews the year of the device
                 return set_device(redirect(url_for("index")), request.cookies[DEVICE_COOKIE])
-            flash("Contraseña incorrecta")
+            flash(text(g.language, "wrong_password"))
         return render_template("login.html", known=known)
 
     @app.post("/logout")
@@ -126,17 +131,34 @@ def create_app(config=None):
     def invite(token):
         user = accounts.find_invite(token)
         if user is None:
-            return render_template("message.html", title="Invitación no válida",
-                                   text="La invitación ya se ha usado o ha caducado."), 404
+            return render_template("message.html", title=text(g.language, "invite_used_title"),
+                                   message=text(g.language, "invite_used_text")), 404
         if request.method == "POST":
             try:
                 user, device_token = accounts.accept_invite(token, request.form.get("password", ""))
             except AccountError as error:
-                flash(str(error))
+                flash(text(g.language, error.key, **error.values))
             else:
                 start_session(user)
                 return set_device(redirect(url_for("index")), device_token)
         return render_template("invite.html", invited=user, min_password=MIN_PASSWORD)
+
+    @app.post("/language")
+    def language():
+        '''
+        Remembers the language. It stays on the same page, and only inside the site
+        '''
+        chosen = request.form.get("lang")
+        target = request.form.get("next", "")
+        root = request.script_root + "/"
+        if not target.startswith(root) or target.startswith("//") or "\\" in target:
+            target = url_for("index")
+        response = redirect(target)
+        if chosen in LANGUAGES:
+            response.set_cookie(LANGUAGE_COOKIE, chosen, max_age=YEAR, httponly=True,
+                                secure=app.config["SESSION_COOKIE_SECURE"], samesite="Lax",
+                                path=app.config["SESSION_COOKIE_PATH"])
+        return response
 
     @app.get("/privacidad")
     def privacy():
@@ -184,7 +206,7 @@ def create_app(config=None):
         found = players.get(valid_ids([entry for entry in entries if entry is not None]))
         ratings = [found.get(entry, {}).get("rating") for entry in entries]
         return jsonify(errors=check_order(ratings, app.config["MARGIN"]), ratings=ratings,
-                       list=players.label())
+                       list=players.label(g.language))
 
     @app.get("/admin")
     @admin_required
@@ -202,10 +224,10 @@ def create_app(config=None):
             elif request.form.get("name", "").strip():
                 token = accounts.create_invite(request.form["name"], request.form.get("club"))
             else:
-                raise AccountError("Falta el nombre")
+                raise AccountError("name_missing")
             session["invite_link"] = url_for("invite", token=token, _external=True)
         except AccountError as error:
-            flash(str(error))
+            flash(text(g.language, error.key, **error.values))
         return redirect(url_for("admin"))
 
     @app.post("/admin/devices/<int:user_id>")
@@ -220,7 +242,7 @@ def create_app(config=None):
         try:
             accounts.delete_user(user_id)
         except AccountError as error:
-            flash(str(error))
+            flash(text(g.language, error.key, **error.values))
         return redirect(url_for("admin"))
 
     return app

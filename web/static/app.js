@@ -7,10 +7,16 @@ const $ = (id) => document.getElementById(id);
 const userId = $("list-label").dataset.user;
 const SAVE_KEY = `elo-orders-${userId}`;
 const ENABLED_KEY = `elo-save-${userId}`;
+const DRAFT_KEY = "elo-draft";
 const MAX_PLAYERS = 30;
+const TEXTS = JSON.parse($("texts").textContent);
 let team = []; // {id, name, rating, inactive}. id is null for players typed by hand
 let searchTimer = null;
 let roster = []; // Last season's players of the club of this user
+
+function t(key, values = {}) {
+  return TEXTS[key].replace(/\{(\w+)\}/g, (_, name) => values[name]);
+}
 
 async function post(path, body) {
   const base = location.pathname.replace(/\/$/, "");
@@ -19,9 +25,9 @@ async function post(path, body) {
     headers: {"Content-Type": "application/json", "X-CSRF": csrf},
     body: JSON.stringify(body),
   });
-  if (response.status === 429) throw new Error("Demasiadas peticiones, espera un minuto");
-  if (response.status === 401) { location.reload(); throw new Error("Sesión caducada"); }
-  if (!response.ok) throw new Error("Error del servidor");
+  if (response.status === 429) throw new Error(t("too_many_requests"));
+  if (response.status === 401) { location.reload(); throw new Error(t("session_expired")); }
+  if (!response.ok) throw new Error(t("server_error"));
   return response.json();
 }
 
@@ -61,15 +67,15 @@ function render(wrong = new Set()) {
     if (wrong.has(index + 1)) row.classList.add("wrong");
     row.append(element("span", index + 1, "board"));
     const who = element("div", player.name, "who");
-    const parts = [player.rating ?? "sin ELO"];
+    const parts = [player.rating ?? t("no_elo")];
     if (player.id) parts.push(`ID ${player.id}`);
-    if (player.inactive) parts.push("inactivo");
+    if (player.inactive) parts.push(t("inactive"));
     who.append(element("small", parts.join(" · ")));
     row.append(who);
     const tools = element("div", undefined, "tools");
-    tools.append(button("↑", `Subir a ${player.name}`, () => move(index, -1)),
-                 button("↓", `Bajar a ${player.name}`, () => move(index, 1)),
-                 button("✕", `Quitar a ${player.name}`, () => {
+    tools.append(button("↑", t("move_up", {name: player.name}), () => move(index, -1)),
+                 button("↓", t("move_down", {name: player.name}), () => move(index, 1)),
+                 button("✕", t("remove", {name: player.name}), () => {
                    team.splice(index, 1); clearVerdict(); render();
                  }));
     row.append(tools);
@@ -96,7 +102,7 @@ function buildRoster() {
         render();
       }
     });
-    label.append(box, element("span", `${player.name} · ${player.rating ?? "sin ELO"}`));
+    label.append(box, element("span", `${player.name} · ${player.rating ?? t("no_elo")}`));
     area.append(label);
   });
   showRoster();
@@ -114,7 +120,7 @@ async function loadRoster() {
     const answer = await post("roster", {});
     roster = answer.players;
     if (roster.length) {
-      $("roster-title").textContent = `Jugadores de tu club en ${answer.season} (${roster.length})`;
+      $("roster-title").textContent = t("club_players", {season: answer.season, n: roster.length});
       $("roster-area").hidden = false;
       buildRoster();
     }
@@ -124,7 +130,7 @@ async function loadRoster() {
 }
 
 function add(player) {
-  if (team.length >= MAX_PLAYERS) return alert(`Máximo ${MAX_PLAYERS} jugadores`);
+  if (team.length >= MAX_PLAYERS) return alert(t("max_players", {n: MAX_PLAYERS}));
   if (player.id && team.some((other) => other.id === player.id)) return;
   team.push(player);
   clearVerdict();
@@ -139,12 +145,12 @@ async function search() {
     const answer = await post("search", {text});
     area.replaceChildren();
     if (!answer.results.length) {
-      area.append(element("p", "Nada con esas palabras. Prueba con otras, o añádelo sin ELO.", "hint"));
+      area.append(element("p", t("nothing_found"), "hint"));
     }
     answer.results.forEach((player) => {
       const option = element("button", undefined, "result");
       option.type = "button";
-      const rating = player.rating ?? "sin ELO";
+      const rating = player.rating ?? t("no_elo");
       option.textContent = `${player.name} · ${rating} · ID ${player.id}`;
       option.addEventListener("click", () => {
         add(player);
@@ -152,13 +158,13 @@ async function search() {
         area.replaceChildren();
       });
       area.append(option);
-      const link = element("a", "Ver ficha en FIDE", "hint");
+      const link = element("a", t("fide_profile"), "hint");
       link.href = `https://ratings.fide.com/profile/${player.id}`;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       area.append(link);
     });
-    if (answer.more) area.append(element("p", "Hay más resultados: añade otra palabra.", "hint"));
+    if (answer.more) area.append(element("p", t("more_results"), "hint"));
   } catch (error) {
     area.replaceChildren(element("p", error.message, "hint"));
   }
@@ -166,13 +172,13 @@ async function search() {
 
 async function addIds() {
   const ids = [...new Set($("ids").value.split(/[\s,;]+/).filter(Boolean))];
-  if (ids.some((id) => !/^\d+$/.test(id))) return alert("Solo números, por favor");
+  if (ids.some((id) => !/^\d+$/.test(id))) return alert(t("numbers_only"));
   try {
     const answer = await post("lookup", {ids: ids.map(Number)});
     const byId = new Map(answer.players.map((player) => [player.id, player]));
     ids.map(Number).forEach((id) => { if (byId.has(id)) add(byId.get(id)); });
     $("ids").value = answer.missing.join(" ");
-    if (answer.missing.length) alert(`IDs no encontrados, se quedan en la casilla: ${answer.missing.join(", ")}`);
+    if (answer.missing.length) alert(t("ids_missing", {ids: answer.missing.join(", ")}));
   } catch (error) {
     alert(error.message);
   }
@@ -206,17 +212,19 @@ async function check() {
     render(wrong);
     verdict.replaceChildren();
     const ok = answer.errors.length === 0;
-    verdict.append(element("p", ok ? "✓ El orden es correcto" : "✗ El orden no es válido", ok ? "good" : "bad"));
+    verdict.append(element("p", t(ok ? "order_right" : "order_wrong"), ok ? "good" : "bad"));
     if (!ok) {
       const list = element("ul");
       answer.errors.forEach((error) => {
         list.append(element("li", error.difference === null
-          ? `Tablero ${error.upper} (sin ELO) por delante de tablero ${error.lower} (${error.lower_rating})`
-          : `Tablero ${error.upper} (${error.upper_rating}) por delante de tablero ${error.lower} (${error.lower_rating}): ${error.difference} puntos`));
+          ? t("error_no_elo", {upper: error.upper, lower: error.lower, rating: error.lower_rating})
+          : t("error_points", {upper: error.upper, upper_rating: error.upper_rating,
+                               lower: error.lower, lower_rating: error.lower_rating,
+                               points: error.difference})));
       });
       verdict.append(list);
     }
-    verdict.append(element("p", `Comprobado con la lista FIDE de ${answer.list.text}.`, "hint"));
+    verdict.append(element("p", t("checked_with", {list: answer.list.text}), "hint"));
   } catch (error) {
     verdict.replaceChildren(element("p", error.message, "bad"));
   }
@@ -242,12 +250,12 @@ function showSaved() {
     const row = element("li");
     row.append(element("span", `${name} (${players.length})`));
     const tools = element("div", undefined, "row");
-    tools.append(button("Abrir", `Abrir ${name}`, () => {
+    tools.append(button(t("open"), t("open_team", {name}), () => {
       team = players.map((player) => ({...player}));
       $("team-name").value = name;
       clearVerdict();
       render();
-    }), button("Borrar", `Borrar ${name}`, () => {
+    }), button(t("delete_label"), t("delete_team", {name}), () => {
       const orders = savedOrders();
       delete orders[name];
       writeOrders(orders);
@@ -262,7 +270,7 @@ function setSaving() {
     localStorage.setItem(ENABLED_KEY, "1");
   } else {
     const count = Object.keys(savedOrders()).length;
-    if (count && !confirm(`Se borrarán ${count} equipos guardados en este dispositivo. ¿Seguir?`)) {
+    if (count && !confirm(t("confirm_delete", {n: count}))) {
       $("save-enabled").checked = true;
       return;
     }
@@ -274,8 +282,8 @@ function setSaving() {
 
 function saveTeam() {
   const name = $("team-name").value.trim();
-  if (!name) return alert("Ponle un nombre al equipo");
-  if (!team.length) return alert("El equipo está vacío");
+  if (!name) return alert(t("team_needs_name"));
+  if (!team.length) return alert(t("team_empty"));
   writeOrders({...savedOrders(), [name]: team});
 }
 
@@ -295,26 +303,26 @@ function exportedName(player) {
 }
 
 function downloadExcel(teams, name) {
-  const header = ["Equipo", "Tablero", "Jugador", "ELO FIDE", "ID FIDE"];
+  const header = [t("column_team"), t("column_board"), t("column_player"), "ELO FIDE", "ID FIDE"];
   const rows = Object.entries(teams).flatMap(([teamName, players]) => players.map(
     (player, index) => [teamName, index + 1, exportedName(player), player.rating, player.id]));
   const link = element("a");
-  link.href = URL.createObjectURL(makeXlsx([header, ...rows], [24, 9, 36, 10, 12]));
+  link.href = URL.createObjectURL(makeXlsx([header, ...rows], [24, 9, 36, 10, 12], t("sheet_name")));
   link.download = name;
   link.click();
   URL.revokeObjectURL(link.href);
 }
 
 function exportTeam() {
-  if (!team.length) return alert("El equipo está vacío");
-  const name = $("team-name").value.trim() || "Equipo";
+  if (!team.length) return alert(t("team_empty"));
+  const name = $("team-name").value.trim() || t("default_team");
   downloadExcel({[name]: team}, `${name.replace(/[^\p{L}\p{N}]+/gu, "-")}.xlsx`);
 }
 
 function exportAll() {
   const orders = savedOrders();
-  if (!Object.keys(orders).length) return alert("No hay equipos guardados");
-  downloadExcel(orders, "ordenes-de-fuerzas.xlsx");
+  if (!Object.keys(orders).length) return alert(t("no_saved_teams"));
+  downloadExcel(orders, t("excel_file"));
 }
 
 function validPlayer(player) {
@@ -330,9 +338,9 @@ async function importOrders(event) {
     const fine = Object.values(orders).every((players) => Array.isArray(players) && players.every(validPlayer));
     if (!fine) throw new Error();
     writeOrders({...savedOrders(), ...orders});
-    alert(`Restaurados ${Object.keys(orders).length} equipos`);
+    alert(t("restored", {n: Object.keys(orders).length}));
   } catch {
-    alert("Ese fichero no sirve: elige el .json que obtuviste con Descargar copia");
+    alert(t("bad_file"));
   }
   event.target.value = "";
 }
@@ -352,6 +360,18 @@ $("export").addEventListener("click", exportOrders);
 $("excel").addEventListener("click", exportTeam);
 $("excel-all").addEventListener("click", exportAll);
 $("import").addEventListener("change", importOrders);
+// Changing the language reloads the page: keep the team being built. This
+// copy only lasts until the page is back, and it's not the "save" option
+document.querySelector(".languages").addEventListener("submit", () => {
+  sessionStorage.setItem(DRAFT_KEY, JSON.stringify({name: $("team-name").value, team}));
+});
+const draft = sessionStorage.getItem(DRAFT_KEY);
+sessionStorage.removeItem(DRAFT_KEY);
+if (draft) {
+  const restored = JSON.parse(draft);
+  $("team-name").value = restored.name;
+  team = restored.team;
+}
 render();
 showSaved();
 loadRoster();

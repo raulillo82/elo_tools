@@ -18,11 +18,10 @@ from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
 from elo_names import normalize_name
+from web.i18n import DEFAULT_LANGUAGE, month_label
 
 PLAYERS_URL = "https://ratings.fide.com/download/players_list_xml.zip"
 INFO_FILE = "list_info.json"
-MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
-          "septiembre", "octubre", "noviembre", "diciembre"]
 MAX_RESULTS = 10
 #Unrated players from other countries can't be found: they can be typed by hand
 HOME_COUNTRY = "ESP"
@@ -125,15 +124,15 @@ class PlayerList:
             raise FileNotFoundError("No hay ninguna lista FIDE")
         return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
 
-    def label(self):
+    def label(self, language=DEFAULT_LANGUAGE):
         '''
         Returns what to tell users about the list
         '''
         path = self.path()
         if path is None or not path.exists():
-            return {"text": "sin lista", "official": False}
+            return {"text": "-", "official": False}
         year, month = re.search(r"(\d{4})-(\d{2})", path.name).groups()
-        return {"text": f"{MONTHS[int(month) - 1]} de {year}", "official": month == "01"}
+        return {"text": month_label(language, int(year), int(month)), "official": month == "01"}
 
     def get(self, fide_ids):
         '''

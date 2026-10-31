@@ -34,8 +34,12 @@ CREATE TABLE IF NOT EXISTS invites (
 
 class AccountError(Exception):
     '''
-    Something the user can be told, in Spanish
+    Something the user can be told: a key of web/i18n.py, and its values
     '''
+    def __init__(self, key, **values):
+        super().__init__(key)
+        self.key = key
+        self.values = values
 
 
 def hash_token(token):
@@ -64,9 +68,9 @@ class Accounts:
         with self.connect() as database:
             if user_id is None:
                 if club not in CLUBS:
-                    raise AccountError("Ese club no existe")
+                    raise AccountError("no_such_club")
                 if database.execute("SELECT 1 FROM users WHERE club = ?", (club,)).fetchone():
-                    raise AccountError("Ese club ya tiene responsable")
+                    raise AccountError("club_taken")
                 user_id = database.execute(
                     "INSERT INTO users (name, club, is_admin) VALUES (?, ?, ?)",
                     (name.strip(), club, int(is_admin))).lastrowid
@@ -92,18 +96,18 @@ class Accounts:
         '''
         user = self.find_invite(token)
         if user is None:
-            raise AccountError("La invitación no es válida o ha caducado")
+            raise AccountError("invite_invalid")
         if user["password_hash"] is None:
             if len(password) < MIN_PASSWORD:
-                raise AccountError(f"La contraseña debe tener al menos {MIN_PASSWORD} caracteres")
+                raise AccountError("password_short", n=MIN_PASSWORD)
         elif not check_password_hash(user["password_hash"], password):
-            raise AccountError("Contraseña incorrecta")
+            raise AccountError("wrong_password")
         device_token = secrets.token_urlsafe(32)
         with self.connect() as database:
             count = database.execute("SELECT COUNT(*) FROM devices WHERE user_id = ?",
                                      (user["id"],)).fetchone()[0]
             if count >= MAX_DEVICES:
-                raise AccountError(f"Esta cuenta ya tiene {MAX_DEVICES} dispositivos")
+                raise AccountError("too_many_devices", n=MAX_DEVICES)
             if user["password_hash"] is None:
                 database.execute("UPDATE users SET password_hash = ? WHERE id = ?",
                                  (generate_password_hash(password), user["id"]))
@@ -157,7 +161,7 @@ class Accounts:
         with self.connect() as database:
             if database.execute("SELECT is_admin FROM users WHERE id = ?",
                                 (user_id,)).fetchone()["is_admin"]:
-                raise AccountError("No se puede borrar al administrador")
+                raise AccountError("admin_kept")
             for table in ("devices", "invites"):
                 database.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
             database.execute("DELETE FROM users WHERE id = ?", (user_id,))

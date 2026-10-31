@@ -1,38 +1,38 @@
 {% extends "base.html" %}
-{% block title %}Accesos{% endblock %}
+{% block title %}{{ t('access') }}{% endblock %}
 {% block content %}
-<h1>Accesos</h1>
+<h1>{{ t('access') }}</h1>
 {% if link %}
 <div class="notice good">
-  <p>Enlace de invitación, válido 72 horas y un solo uso. Solo se muestra ahora:</p>
+  <p>{{ t('invite_link') }}</p>
   <p class="wrap"><code>{{ link }}</code></p>
 </div>
 {% endif %}
 {% if clubs %}
 <form method="post" action="{{ url_for('admin_invite') }}" class="card">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <h2>Nueva persona</h2>
-  <label>Nombre de pila <input name="name" required maxlength="40"></label>
-  <label>Club <select name="club">{% for club in clubs %}<option>{{ club }}</option>{% endfor %}</select></label>
-  <button>Crear invitación</button>
+  <h2>{{ t('new_person') }}</h2>
+  <label>{{ t('first_name') }} <input name="name" required maxlength="40"></label>
+  <label>{{ t('club') }} <select name="club">{% for club in clubs %}<option>{{ club }}</option>{% endfor %}</select></label>
+  <button>{{ t('create_invite') }}</button>
 </form>
 {% endif %}
-<h2>Personas</h2>
+<h2>{{ t('people') }}</h2>
 {% for person in users %}
 <div class="card">
-  <p><strong>{{ person['name'] }}</strong> · {{ person['club'] }} · {{ person['devices'] }} dispositivo(s)</p>
+  <p><strong>{{ person['name'] }}</strong> · {{ person['club'] }} · {{ t('devices', n=person['devices']) }}</p>
   <div class="row">
     <form method="post" action="{{ url_for('admin_invite') }}">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="user_id" value="{{ person['id'] }}">
-      <button>Invitar otro dispositivo</button>
+      <button>{{ t('invite_device') }}</button>
     </form>
     <form method="post" action="{{ url_for('admin_devices', user_id=person['id']) }}">
-      <input type="hidden" name="csrf" value="{{ csrf }}"><button>Quitar dispositivos</button>
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button>{{ t('remove_devices') }}</button>
     </form>
     {% if not person['is_admin'] %}
     <form method="post" action="{{ url_for('admin_delete', user_id=person['id']) }}">
-      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger">Borrar</button>
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger">{{ t('delete') }}</button>
     </form>
     {% endif %}
   </div>

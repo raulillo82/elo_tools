@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Hola, {{ invited['name'] }}</h1>
-<p>Invitación para {{ invited['club'] }}. Quedará vinculada a este dispositivo.</p>
+<h1>{{ t('hello', name=invited['name']) }}</h1>
+<p>{{ t('invite_for', club=invited['club']) }}</p>
 <form method="post" class="card">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   {% if invited['password_hash'] %}
-  <label>Tu contraseña <input type="password" name="password" required autocomplete="current-password"></label>
+  <label>{{ t('your_password') }} <input type="password" name="password" required autocomplete="current-password"></label>
   {% else %}
-  <label>Elige una contraseña (mínimo {{ min_password }} caracteres)
+  <label>{{ t('choose_password', n=min_password) }}
     <input type="password" name="password" required minlength="{{ min_password }}" autocomplete="new-password"></label>
   {% endif %}
-  <button>Activar</button>
+  <button>{{ t('activate') }}</button>
 </form>
 {% endblock %}

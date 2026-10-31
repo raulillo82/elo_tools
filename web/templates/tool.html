@@ -1,69 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
-<p class="notice" id="list-label" data-official="{{ list_label['official']|int }}" data-user="{{ user['id'] }}">
-  Lista FIDE de {{ list_label['text'] }}.
-  {% if not list_label['official'] %}<strong>Provisional:</strong> el orden oficial se hace con la lista de enero, según las bases del año.{% endif %}
+<p class="notice" id="list-label" data-user="{{ user['id'] }}">
+  {{ t('list_is', list=list_label['text']) }}
+  {% if not list_label['official'] %}<strong>{{ t('provisional') }}</strong> {{ t('provisional_text') }}{% endif %}
 </p>
 
 <section class="card">
-  <label>Equipo <input id="team-name" maxlength="40" placeholder="{{ user['club'] }} A"></label>
+  <label>{{ t('team') }} <input id="team-name" maxlength="40" placeholder="{{ user['club'] }} A"></label>
   <details id="roster-area" hidden>
-    <summary id="roster-title">Jugadores de la temporada pasada</summary>
-    <p class="hint">Marca los que quieras en este equipo. Solo ves a los de tu club.</p>
+    <summary id="roster-title">{{ t('last_season') }}</summary>
+    <p class="hint">{{ t('roster_hint') }}</p>
     <div id="roster"></div>
   </details>
-  <label>Añadir jugador por nombre <input id="search" autocomplete="off" placeholder="Apellido y nombre"></label>
-  <p class="hint">Escribe al menos dos palabras completas, por ejemplo un apellido y el nombre.</p>
+  <label>{{ t('add_by_name') }} <input id="search" autocomplete="off" placeholder="{{ t('name_placeholder') }}"></label>
+  <p class="hint">{{ t('search_hint') }}</p>
   <div id="results"></div>
   <details>
-    <summary>Más formas de añadir</summary>
-    <label>IDs FIDE (separados por espacios o comas) <textarea id="ids" rows="2" inputmode="numeric"></textarea></label>
-    <button id="add-ids" type="button">Añadir IDs</button>
-    <label>Jugador sin ID FIDE <input id="manual" maxlength="60" placeholder="Nombre"></label>
-    <button id="add-manual" type="button">Añadir sin ELO</button>
-    <p class="hint">Este nombre no sale de tu dispositivo.</p>
+    <summary>{{ t('more_ways') }}</summary>
+    <label>{{ t('fide_ids') }} <textarea id="ids" rows="2" inputmode="numeric"></textarea></label>
+    <button id="add-ids" type="button">{{ t('add_ids') }}</button>
+    <label>{{ t('no_fide_id') }} <input id="manual" maxlength="60" placeholder="{{ t('name') }}"></label>
+    <button id="add-manual" type="button">{{ t('add_no_elo') }}</button>
+    <p class="hint">{{ t('stays_here') }}</p>
   </details>
 </section>
 
 <section class="card">
-  <h2>Tableros</h2>
+  <h2>{{ t('boards') }}</h2>
   <ol id="players"></ol>
-  <p id="empty" class="hint">Todavía no hay jugadores.</p>
+  <p id="empty" class="hint">{{ t('no_players') }}</p>
   <div class="row">
-    <button id="sort" type="button">Ordenar por ELO</button>
-    <button id="check" type="button" class="primary">Comprobar</button>
-    <button id="clear" type="button">Vaciar</button>
-    <button id="excel" type="button">Descargar Excel</button>
+    <button id="sort" type="button">{{ t('sort') }}</button>
+    <button id="check" type="button" class="primary">{{ t('check') }}</button>
+    <button id="clear" type="button">{{ t('clear') }}</button>
+    <button id="excel" type="button">{{ t('excel') }}</button>
   </div>
   <div id="verdict"></div>
 </section>
 
 <section class="card">
-  <label class="check"><input type="checkbox" id="save-enabled"> Guardar mis órdenes en este dispositivo</label>
-  <p class="hint">Solo se guardan en este navegador, nunca en el servidor: nadie más puede verlos, y no pasan a tus otros dispositivos. El fichero Excel también se abre en Google Sheets y LibreOffice.</p>
+  <label class="check"><input type="checkbox" id="save-enabled"> {{ t('save_toggle') }}</label>
+  <p class="hint">{{ t('save_hint') }}</p>
   <div id="saved-area" hidden>
     <div class="row">
-      <button id="save" type="button">Guardar este equipo</button>
-      <button id="excel-all" type="button">Excel de todos</button>
+      <button id="save" type="button">{{ t('save_team') }}</button>
+      <button id="excel-all" type="button">{{ t('excel_all') }}</button>
     </div>
     <ul id="saved"></ul>
     <details>
-      <summary>Pasar mis equipos a otro dispositivo</summary>
+      <summary>{{ t('move_teams') }}</summary>
       <ol class="hint">
-        <li>Aquí, pulsa <strong>Descargar copia</strong>: obtienes un fichero <code>.json</code> con todos tus equipos guardados.</li>
-        <li>Pasa ese fichero al otro dispositivo.</li>
-        <li>Allí, activa el guardado, pulsa <strong>Restaurar copia</strong> y elige el fichero.</li>
+        <li>{{ t('move_step1')|safe }}</li>
+        <li>{{ t('move_step2') }}</li>
+        <li>{{ t('move_step3')|safe }}</li>
       </ol>
-      <p class="hint">Solo vale ese fichero, no un Excel. Los equipos con el mismo nombre se sustituyen.</p>
+      <p class="hint">{{ t('move_hint') }}</p>
       <div class="row">
-        <button id="export" type="button">Descargar copia</button>
-        <label class="button">Restaurar copia<input id="import" type="file" accept=".json" hidden></label>
+        <button id="export" type="button">{{ t('download_copy') }}</button>
+        <label class="button">{{ t('restore_copy') }}<input id="import" type="file" accept=".json" hidden></label>
       </div>
     </details>
   </div>
 </section>
 {% endblock %}
 {% block scripts %}
+<script id="texts" type="application/json">{{ browser_texts|tojson }}</script>
 <script src="{{ url_for('static', filename='xlsx.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}
