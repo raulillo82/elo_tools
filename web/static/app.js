@@ -279,13 +279,44 @@ function saveTeam() {
   writeOrders({...savedOrders(), [name]: team});
 }
 
-function exportOrders() {
-  const file = new Blob([JSON.stringify(savedOrders(), null, 2)], {type: "application/json"});
+function download(content, type, name) {
   const link = element("a");
-  link.href = URL.createObjectURL(file);
-  link.download = "ordenes-de-fuerzas.json";
+  link.href = URL.createObjectURL(new Blob([content], {type}));
+  link.download = name;
   link.click();
   URL.revokeObjectURL(link.href);
+}
+
+function exportOrders() {
+  download(JSON.stringify(savedOrders(), null, 2), "application/json", "ordenes-de-fuerzas.json");
+}
+
+// A spreadsheet would run a typed name starting with one of these as a formula
+function csvCell(value) {
+  const text = String(value ?? "");
+  const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${safe.replaceAll('"', '""')}"`;
+}
+
+// Excel in Spain expects ";". The first character lets it read accents
+function downloadCsv(teams, name) {
+  const header = ["Equipo", "Tablero", "Jugador", "ELO FIDE", "ID FIDE"];
+  const rows = Object.entries(teams).flatMap(([teamName, players]) => players.map(
+    (player, index) => [teamName, index + 1, player.name, player.rating, player.id]));
+  const lines = [header, ...rows].map((row) => row.map(csvCell).join(";"));
+  download(`\ufeff${lines.join("\r\n")}\r\n`, "text/csv;charset=utf-8", name);
+}
+
+function exportTeam() {
+  if (!team.length) return alert("El equipo está vacío");
+  const name = $("team-name").value.trim() || "Equipo";
+  downloadCsv({[name]: team}, `${name.replace(/[^\p{L}\p{N}]+/gu, "-")}.csv`);
+}
+
+function exportAll() {
+  const orders = savedOrders();
+  if (!Object.keys(orders).length) return alert("No hay equipos guardados");
+  downloadCsv(orders, "ordenes-de-fuerzas.csv");
 }
 
 function validPlayer(player) {
@@ -301,8 +332,9 @@ async function importOrders(event) {
     const fine = Object.values(orders).every((players) => Array.isArray(players) && players.every(validPlayer));
     if (!fine) throw new Error();
     writeOrders({...savedOrders(), ...orders});
+    alert(`Restaurados ${Object.keys(orders).length} equipos`);
   } catch {
-    alert("Ese fichero no es válido");
+    alert("Ese fichero no sirve: elige el .json que obtuviste con Descargar copia");
   }
   event.target.value = "";
 }
@@ -319,6 +351,8 @@ $("clear").addEventListener("click", () => { team = []; clearVerdict(); render()
 $("save-enabled").addEventListener("change", setSaving);
 $("save").addEventListener("click", saveTeam);
 $("export").addEventListener("click", exportOrders);
+$("csv").addEventListener("click", exportTeam);
+$("csv-all").addEventListener("click", exportAll);
 $("import").addEventListener("change", importOrders);
 render();
 showSaved();
