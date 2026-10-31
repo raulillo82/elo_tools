@@ -6,7 +6,7 @@ import pandas
 from dbfread import DBF
 from pandas import DataFrame
 
-from elo_common import (EXACT, POSSIBLE, add_missing_comma, download_fide_list,
+from elo_common import (EXACT, POSSIBLE, add_missing_comma, load_fide_list,
                         find_player, status_text)
 
 ELOVASCO_FILE = "./elovasco.zip"
@@ -104,7 +104,7 @@ def main():
     #Avoiding to have thousands of lines in the output during testing
     clubs = df_basque_clubs[(df_basque_clubs.PROV == "A")
                             & df_basque_clubs.CLUB.isin(["MARTINTXO", "SAN VIATOR"])]
-    print_club_fide_elos(clubs, df_basque_players, download_fide_list())
+    print_club_fide_elos(clubs, df_basque_players, load_fide_list())
 
 
 if __name__ == "__main__":

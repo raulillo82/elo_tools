@@ -2,15 +2,23 @@
 Code shared by script_elo_fide.py and script_elo_basque.py: downloading the
 FIDE list and finding players in it.
 '''
+import json
 import re
 import unicodedata
 from io import BytesIO
-from urllib.request import urlopen
+from pathlib import Path
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
 import pandas
 
 FIDE_URL = "https://ratings.fide.com/download/standard_rating_list_xml.zip"
+
+#Parsing the FIDE XML takes about 15 seconds, so keep the result on disk. The
+#first file has the list, the second one its date
+FIDE_CACHE = Path(__file__).parent / "fide_cache.parquet"
+FIDE_CACHE_INFO = Path(__file__).parent / "fide_cache.json"
 
 #Possible results of find_player
 EXACT = "exact"          #The full name matches
@@ -61,19 +69,57 @@ def prepare_fide_list(df_fide):
     return df_fide
 
 
-def download_fide_list():
+def read_cache_info():
     '''
-    Returns the latest FIDE list, ready to be used with find_player
+    Returns the information about the FIDE list on disk, None if there's no list
     '''
-    with urlopen(FIDE_URL, timeout=120) as resp:
-        data = resp.read()
+    if not (FIDE_CACHE.exists() and FIDE_CACHE_INFO.exists()):
+        return None
+    return json.loads(FIDE_CACHE_INFO.read_text(encoding="utf-8"))
+
+
+def parse_fide_zip(data):
+    '''
+    Returns the date of a FIDE zipfile, and its list as a DF
+    '''
     with ZipFile(BytesIO(data)) as archive:
         #zipfile has only one compressed file:
         xml_file = archive.namelist()[0]
         #Get the date, it's a tuple. Time is not needed, just the date
         year, month, day = archive.getinfo(xml_file).date_time[:3]
-        print(f"ELOs FIDE a fecha de {day}/{month}/{year}:")
-        return prepare_fide_list(pandas.read_xml(archive.open(xml_file)))
+        return f"{day}/{month}/{year}", prepare_fide_list(pandas.read_xml(archive.open(xml_file)))
+
+
+def load_fide_list():
+    '''
+    Returns the latest FIDE list, ready to be used with find_player. It's only
+    downloaded if FIDE has a newer one than the list on disk.
+    '''
+    cache_info = read_cache_info()
+    headers = {}
+    if cache_info and cache_info["last_modified"]:
+        #The server answers 304 if the list hasn't changed since that date
+        headers["If-Modified-Since"] = cache_info["last_modified"]
+    try:
+        with urlopen(Request(FIDE_URL, headers=headers), timeout=120) as resp:
+            data = resp.read()
+            last_modified = resp.headers.get("Last-Modified")
+    except (URLError, TimeoutError) as error:
+        if cache_info is None:
+            raise
+        #urllib reports 304 as an error, but it's the expected answer
+        if getattr(error, "code", None) != 304:
+            print(f"AVISO: no se ha podido consultar la lista FIDE ({error}), "
+                  "se usa la del disco, que puede estar desactualizada")
+        print(f"ELOs FIDE a fecha de {cache_info['date']}:")
+        return pandas.read_parquet(FIDE_CACHE)
+
+    date, df_fide = parse_fide_zip(data)
+    df_fide.to_parquet(FIDE_CACHE)
+    FIDE_CACHE_INFO.write_text(json.dumps({"date": date, "last_modified": last_modified}),
+                               encoding="utf-8")
+    print(f"ELOs FIDE a fecha de {date}:")
+    return df_fide
 
 
 def find_player(df_fide, name, birth_year=None):

@@ -1,5 +1,5 @@
 import pandas
-from elo_common import EXACT, POSSIBLE, download_fide_list, find_player
+from elo_common import EXACT, POSSIBLE, load_fide_list, find_player
 try:
     from players import players
 except ModuleNotFoundError:
@@ -22,7 +22,7 @@ COLUMNS = ["fideid", "name", "country", "sex", "title", "rating", "games",
 
 
 def main():
-    df_fide = download_fide_list()
+    df_fide = load_fide_list()
     found, possible, not_found = [], [], []
     for player in players:
         result, rows = find_player(df_fide, player)

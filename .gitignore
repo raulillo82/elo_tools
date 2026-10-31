@@ -3,3 +3,4 @@ Enero2022/
 __pycache__/
 pyenv/
 players.py
+fide_cache.*

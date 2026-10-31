@@ -1,3 +1,4 @@
 pandas
 lxml
 dbfread
+pyarrow
