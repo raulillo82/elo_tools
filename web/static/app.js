@@ -288,10 +288,16 @@ function exportOrders() {
   URL.revokeObjectURL(link.href);
 }
 
+// FIDE adds the birth year to tell namesakes apart: "Soto, Ana 1987 II". The
+// file has the FIDE ID for that. Names typed by hand are left as they are
+function exportedName(player) {
+  return player.id ? player.name.replace(/\s+\d{4}(\s+[IVX]+)?$/i, "") : player.name;
+}
+
 function downloadExcel(teams, name) {
   const header = ["Equipo", "Tablero", "Jugador", "ELO FIDE", "ID FIDE"];
   const rows = Object.entries(teams).flatMap(([teamName, players]) => players.map(
-    (player, index) => [teamName, index + 1, player.name, player.rating, player.id]));
+    (player, index) => [teamName, index + 1, exportedName(player), player.rating, player.id]));
   const link = element("a");
   link.href = URL.createObjectURL(makeXlsx([header, ...rows], [24, 9, 36, 10, 12]));
   link.download = name;
