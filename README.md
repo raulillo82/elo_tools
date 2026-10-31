@@ -109,7 +109,9 @@ que sigue siendo por correo a la federación.
   `2027-01`). Solo contiene nombre, ELO, estado e ID: nunca el año de nacimiento
   ni el sexo. La actualiza cada noche `elo-list-update.timer`.
 - **Órdenes de fuerzas:** el servidor los comprueba y no los guarda. El guardado
-  es opcional, está desactivado por defecto y se queda en el navegador.
+  es opcional, está desactivado por defecto y se queda en el navegador. Se
+  pueden descargar en CSV para Excel o Google Sheets, o en una copia de seguridad
+  para pasarlos a otro dispositivo.
 - **Jugadores de la temporada pasada:** `web/rosters.py` guarda club e ID, y cada
   responsable solo ve los de su club. Cada año hay que cambiar en ese archivo la
   temporada y los torneos, y ejecutarlo.
