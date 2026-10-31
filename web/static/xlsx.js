@@ -67,7 +67,7 @@ function cell(value, column, row) {
 }
 
 // rows is a list of lists of texts and numbers. widths has one number per column
-function makeXlsx(rows, widths) {
+function makeXlsx(rows, widths, sheetName) {
   const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
   const MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
   const RELS = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -86,7 +86,7 @@ function makeXlsx(rows, widths) {
     "_rels/.rels": `${XML}<Relationships xmlns="${RELS}"><Relationship Id="rId1" `
       + `Type="${OFFICE}/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
     "xl/workbook.xml": `${XML}<workbook xmlns="${MAIN}" xmlns:r="${OFFICE}"><sheets>`
-      + '<sheet name="Equipos" sheetId="1" r:id="rId1"/></sheets></workbook>',
+      + `<sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
     "xl/_rels/workbook.xml.rels": `${XML}<Relationships xmlns="${RELS}"><Relationship Id="rId1" `
       + `Type="${OFFICE}/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
     "xl/worksheets/sheet1.xml": `${XML}<worksheet xmlns="${MAIN}"><cols>${columns}</cols>`

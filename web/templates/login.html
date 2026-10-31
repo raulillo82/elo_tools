@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
 {% if known %}
-<h1>Hola, {{ known['name'] }}</h1>
+<h1>{{ t('hello', name=known['name']) }}</h1>
 <form method="post" class="card">
   <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label>Contraseña <input type="password" name="password" required autofocus autocomplete="current-password"></label>
-  <button>Entrar</button>
+  <label>{{ t('password') }} <input type="password" name="password" required autofocus autocomplete="current-password"></label>
+  <button>{{ t('enter') }}</button>
 </form>
 {% else %}
-<h1>Acceso solo por invitación</h1>
-<p>Este dispositivo no está autorizado. Si eres responsable de un club, pide una invitación.</p>
+<h1>{{ t('invite_only') }}</h1>
+<p>{{ t('invite_only_text') }}</p>
 {% endif %}
 {% endblock %}

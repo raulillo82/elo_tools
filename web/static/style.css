@@ -33,3 +33,8 @@ button.link { min-height: 0; padding: 0; border: 0; background: none; color: var
 #saved { list-style: none; padding: 0; margin: .8rem 0 0; } #saved li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .3rem 0; }
 #roster label.check { font-weight: 400; margin-bottom: .1rem; min-height: 40px; }
 #saved-area details { margin-top: .8rem; } ol.hint { padding-left: 1.2rem; }
+.languages { display: flex; gap: .3rem; margin: 0 0 0 auto; order: 1; }
+.languages button { min-height: 40px; padding: .2rem .4rem; gap: .3rem; font-size: .8rem; opacity: .6; }
+.languages button[aria-pressed="true"] { opacity: 1; font-weight: 700; border-color: var(--accent); }
+.languages img { display: block; border: 1px solid var(--line); }
+header nav { order: 2; width: 100%; }
