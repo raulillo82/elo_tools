@@ -38,7 +38,8 @@ def normalize_name(name):
     Returns a version of the name which is only useful to compare names:
     lowercase, no accents, no "ñ", and without the FIDE namesake suffix.
     '''
-    name = name.lower().replace("mª", "maria").replace("fco.", "francisco")
+    name = name.lower().replace("mª", "maria")
+    name = re.sub(r"\bfco\b\.?", "francisco", name)
     #Split letters from their accents, then drop the accents
     decomposed = unicodedata.normalize("NFKD", name)
     name = "".join(char for char in decomposed if not unicodedata.combining(char))
@@ -92,8 +93,9 @@ def parse_fide_zip(data):
 
 def load_fide_list():
     '''
-    Returns the latest FIDE list, ready to be used with find_player. It's only
-    downloaded if FIDE has a newer one than the list on disk.
+    Returns the latest FIDE list, ready to be used with find_player, as a
+    tuple: the DF, its date, and a warning (None if everything went fine).
+    It's only downloaded if FIDE has a newer one than the list on disk.
     '''
     cache_info = read_cache_info()
     headers = {}
@@ -107,19 +109,18 @@ def load_fide_list():
     except (URLError, TimeoutError) as error:
         if cache_info is None:
             raise
+        warning = None
         #urllib reports 304 as an error, but it's the expected answer
         if getattr(error, "code", None) != 304:
-            print(f"AVISO: no se ha podido consultar la lista FIDE ({error}), "
-                  "se usa la del disco, que puede estar desactualizada")
-        print(f"ELOs FIDE a fecha de {cache_info['date']}:")
-        return pandas.read_parquet(FIDE_CACHE)
+            warning = (f"no se ha podido consultar la lista FIDE ({error}), "
+                       "se usa la del disco, que puede estar desactualizada")
+        return pandas.read_parquet(FIDE_CACHE), cache_info["date"], warning
 
     date, df_fide = parse_fide_zip(data)
     df_fide.to_parquet(FIDE_CACHE)
     FIDE_CACHE_INFO.write_text(json.dumps({"date": date, "last_modified": last_modified}),
                                encoding="utf-8")
-    print(f"ELOs FIDE a fecha de {date}:")
-    return df_fide
+    return df_fide, date, None
 
 
 def find_player(df_fide, name, birth_year=None):
