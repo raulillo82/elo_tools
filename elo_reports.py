@@ -33,6 +33,7 @@ PLAYERS_FILE = Path(__file__).parent / "players.txt"
 #Column names of the exported files
 EXPORT_COLUMNS = ["Jugador", "ELO vasco", "ELO FIDE", "Variación", "Estado",
                   "Nacido", "ID FIDE", "A revisar"]
+CHANGE_COLUMN = EXPORT_COLUMNS.index("Variación")
 
 
 @dataclass
@@ -216,15 +217,18 @@ def to_records(rows):
     return records
 
 
-def to_csv(rows):
+def to_csv(rows, previous_date=None):
     '''
     Returns the text of a CSV file with the player rows. It uses ";" because
-    that's what Excel expects in Spain
+    that's what Excel expects in Spain. The change column says since when
     '''
     output = StringIO()
-    writer = csv.DictWriter(output, EXPORT_COLUMNS, delimiter=";")
-    writer.writeheader()
-    writer.writerows(to_records(rows))
+    writer = csv.writer(output, delimiter=";")
+    headers = list(EXPORT_COLUMNS)
+    if previous_date:
+        headers[CHANGE_COLUMN] += f" desde {previous_date}"
+    writer.writerow(headers)
+    writer.writerows(record.values() for record in to_records(rows))
     return output.getvalue()
 
 

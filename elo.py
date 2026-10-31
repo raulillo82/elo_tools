@@ -108,32 +108,33 @@ def format_doubts(rows):
     return ""
 
 
-def format_players(title, rows):
+def format_players(title, rows, previous_date=None):
     '''
     Returns the text of a table of player rows, and the doubts below it
     '''
-    headers = [title, "ELO vasco", "ELO FIDE", "Var.", "Estado"]
+    change = f"Var. desde {previous_date}" if previous_date else "Var."
+    headers = [title, "ELO vasco", "ELO FIDE", change, "Estado"]
     text = format_table(headers, [player_cells(row) for row in rows])
     return text + format_doubts(rows)
 
 
-def export_rows(title, rows):
+def export_rows(title, rows, previous_date):
     '''
     Saves the player rows to a CSV file. utf-8-sig lets Excel read accents
     '''
     EXPORT_FOLDER.mkdir(exist_ok=True)
     name = re.sub(r"\W+", "_", title.lower()).strip("_")
     path = EXPORT_FOLDER / f"{name}.csv"
-    path.write_text(elo_reports.to_csv(rows), encoding="utf-8-sig")
+    path.write_text(elo_reports.to_csv(rows, previous_date), encoding="utf-8-sig")
     print(f"Guardado en {path}")
 
 
-def show_rows(title, rows, options):
+def show_rows(data, title, rows, options):
     rows = elo_reports.filter_rows(rows, options.show_inactive, options.show_without_fide)
-    print(format_players(title, rows))
+    print(format_players(title, rows, data.previous_date))
     print()
     if options.export:
-        export_rows(title, rows)
+        export_rows(title, rows, data.previous_date)
 
 
 def show_my_players(data, options):
@@ -141,12 +142,12 @@ def show_my_players(data, options):
     if players is None:
         print(PLAYERS_FILE_HELP)
     else:
-        show_rows("JUGADOR", elo_reports.my_players_table(data, players), options)
+        show_rows(data, "JUGADOR", elo_reports.my_players_table(data, players), options)
 
 
 def show_clubs(data, clubs, options):
     for club in clubs:
-        show_rows(club["name"], elo_reports.club_table(data, club["id"]), options)
+        show_rows(data, club["name"], elo_reports.club_table(data, club["id"]), options)
 
 
 def show_club_search(data, text, options):
@@ -250,8 +251,6 @@ def main():
     data = elo_reports.load_data()
     print(f"ELOs FIDE a fecha de {data.fide_date}. "
           f"ELOs vascos de {ELOVASCO_DATE}, no se comprueba si hay alguno más reciente.")
-    if data.previous_date:
-        print(f"Var. es la diferencia de ELO FIDE con la lista de {data.previous_date}.")
     if data.fide_warning:
         print(f"AVISO: {data.fide_warning}")
     print()

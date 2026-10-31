@@ -4,5 +4,6 @@ __pycache__/
 pyenv/
 players.txt
 fide_history/
+fide_archive/
 exports/
 fide_cache.*

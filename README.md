@@ -47,8 +47,8 @@ python3 elo.py club "san viator" --activos --solo-fide
 - Un `?` junto a un ELO indica que el nombre no coincide del todo, o que hay
   homónimos. Debajo de la tabla se explica cada caso, en "A revisar".
 - `varios?` significa que hay más de un jugador FIDE posible.
-- `Var.` es la diferencia de ELO FIDE con la lista anterior, y `=` que no ha
-  cambiado. Se queda vacío para quien no estaba en esa lista como jugador
+- `Var. desde 29/9/2026` es la diferencia de ELO FIDE con la lista de esa fecha,
+  y `=` que no ha cambiado. Se queda vacío para quien no estaba en esa lista como jugador
   español, porque el histórico solo guarda a los españoles.
 
 ## El archivo players.txt
@@ -71,6 +71,8 @@ El ID FIDE es lo más seguro para homónimos o nombres mal escritos.
 - **Histórico:** cada lista FIDE nueva guarda los ELOs de los jugadores
   españoles en `fide_history/`, con un archivo por lista. Sirve para calcular
   `Var.`, así que conviene no borrarlo.
+- **Archivo:** `fide_archive/` guarda listas FIDE mensuales completas, tal como
+  las publica FIDE. El programa no las usa por ahora.
 - **Lista vasca:** es `elovasco.zip`, de enero de 2022. El programa no comprueba
   si hay otra más reciente.
 

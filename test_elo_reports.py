@@ -158,6 +158,10 @@ class ExportTest(unittest.TestCase):
         self.assertEqual(lines[1], "Sin Fide, Juan;1900;;;;;;no")
         self.assertIn("Soto Rey, Ana;1700;1800;12;activo;1990;1;no", lines)
 
+    def test_csv_says_since_when_is_the_change(self):
+        rows = elo_reports.club_table(sample_data(), "001")
+        self.assertIn("Variación desde 1/12/2025;", elo_reports.to_csv(rows, "1/12/2025"))
+
     def test_several_candidates_leave_fide_data_empty_and_need_review(self):
         rows = elo_reports.club_table(sample_data(), "001")
         lines = elo_reports.to_csv(rows).splitlines()
@@ -206,6 +210,14 @@ class ConsoleTest(unittest.TestCase):
         self.assertEqual(elo.change_cell(row(-3)), "-3")
         self.assertEqual(elo.change_cell(row(0)), "=")
         self.assertEqual(elo.change_cell(row(None)), "")
+
+    def test_change_header_says_since_when(self):
+        rows = elo_reports.club_table(sample_data(), "001")
+        self.assertIn("Var. desde 1/12/2025", elo.format_players("X", rows, "1/12/2025"))
+
+    def test_change_header_without_previous_list(self):
+        rows = elo_reports.club_table(sample_data(), "001")
+        self.assertNotIn("desde", elo.format_players("X", rows))
 
     def test_doubt_in_the_basque_list_is_explained(self):
         rows = elo_reports.my_players_table(sample_data(), [2])
