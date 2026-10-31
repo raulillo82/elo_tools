@@ -1,0 +1,24 @@
+[Unit]
+Description=Orden de fuerzas (podman)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/sh -c 'i=0; while [ "$$(date +%%s)" -lt 1790000000 ] && [ $$i -lt 120 ]; do i=$$((i+1)); sleep 1; done'
+ExecStartPre=-/usr/bin/podman rm -f elo-web
+ExecStart=/usr/bin/podman run --name elo-web --rm \
+    -p 127.0.0.1:5003:5003 \
+    --userns keep-id:uid=1000,gid=1000 \
+    --cap-drop all --security-opt no-new-privileges \
+    --read-only --tmpfs /tmp \
+    --memory 512m \
+    -e HOME=/tmp \
+    -v %h/elo-web/data:/data:Z \
+    -v %h/elo-web/secrets:/secrets:ro,Z \
+    localhost/elo-web:latest
+ExecStop=/usr/bin/podman stop -t 10 elo-web
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

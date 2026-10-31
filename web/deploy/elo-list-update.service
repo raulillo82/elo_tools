@@ -1,0 +1,11 @@
+[Unit]
+Description=Descarga la lista FIDE para la web si hay una nueva
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman run --rm \
+    --userns keep-id:uid=1000,gid=1000 \
+    --cap-drop all --security-opt no-new-privileges \
+    --read-only --tmpfs /tmp \
+    -v %h/elo-web/data:/data:Z \
+    localhost/elo-web:latest python3 -m web.lists /data

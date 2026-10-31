@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="notice" id="list-label" data-official="{{ list_label['official']|int }}" data-user="{{ user['id'] }}">
+  Lista FIDE de {{ list_label['text'] }}.
+  {% if not list_label['official'] %}<strong>Provisional:</strong> el orden oficial se hace con la lista de enero, según las bases del año.{% endif %}
+</p>
+
+<section class="card">
+  <label>Equipo <input id="team-name" maxlength="40" placeholder="{{ user['club'] }} A"></label>
+  <details id="roster-area" hidden>
+    <summary id="roster-title">Jugadores de la temporada pasada</summary>
+    <p class="hint">Marca los que quieras en este equipo. Solo ves a los de tu club.</p>
+    <div id="roster"></div>
+  </details>
+  <label>Añadir jugador por nombre <input id="search" autocomplete="off" placeholder="Apellido y nombre"></label>
+  <p class="hint">Escribe al menos dos palabras completas, por ejemplo un apellido y el nombre.</p>
+  <div id="results"></div>
+  <details>
+    <summary>Más formas de añadir</summary>
+    <label>IDs FIDE (separados por espacios o comas) <textarea id="ids" rows="2" inputmode="numeric"></textarea></label>
+    <button id="add-ids" type="button">Añadir IDs</button>
+    <label>Jugador sin ID FIDE <input id="manual" maxlength="60" placeholder="Nombre"></label>
+    <button id="add-manual" type="button">Añadir sin ELO</button>
+    <p class="hint">Este nombre no sale de tu dispositivo.</p>
+  </details>
+</section>
+
+<section class="card">
+  <h2>Tableros</h2>
+  <ol id="players"></ol>
+  <p id="empty" class="hint">Todavía no hay jugadores.</p>
+  <div class="row">
+    <button id="sort" type="button">Ordenar por ELO</button>
+    <button id="check" type="button" class="primary">Comprobar</button>
+    <button id="clear" type="button">Vaciar</button>
+  </div>
+  <div id="verdict"></div>
+</section>
+
+<section class="card">
+  <label class="check"><input type="checkbox" id="save-enabled"> Guardar mis órdenes en este dispositivo</label>
+  <p class="hint">Solo se guardan en este navegador, nunca en el servidor: nadie más puede verlos, y no pasan a tus otros dispositivos.</p>
+  <div id="saved-area" hidden>
+    <div class="row">
+      <button id="save" type="button">Guardar este equipo</button>
+      <button id="export" type="button">Exportar</button>
+      <label class="button">Importar<input id="import" type="file" accept=".json" hidden></label>
+    </div>
+    <ul id="saved"></ul>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='app.js') }}"></script>{% endblock %}

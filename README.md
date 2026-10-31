@@ -91,9 +91,46 @@ El ID FIDE es lo más seguro para homónimos o nombres mal escritos.
 | `elo_common.py` | Descarga de la lista FIDE y búsqueda de nombres |
 | `elo_basque.py` | Descarga y lectura de la lista vasca |
 | `elo_history.py` | Histórico de ELOs FIDE |
+| `elo_names.py` | Comparación de nombres, sin dependencias |
+| `web/` | La web de orden de fuerzas |
+
+## La web: orden de fuerzas
+
+`web/` es una herramienta aparte para que cada responsable de club compruebe el
+orden de fuerzas de sus equipos desde el móvil. No sustituye al envío oficial,
+que sigue siendo por correo a la federación.
+
+- **Reglas:** están en `web/rules.py`. Un jugador solo puede ir delante de otro
+  con más ELO si la diferencia es de 50 puntos o menos, y los jugadores sin ELO
+  van después de los que tienen ELO. El margen se cambia con `ELO_MARGIN`.
+- **Comprobación por equipo:** los capitanes eligen libremente quién juega en
+  cada equipo, así que no se comparan equipos entre sí.
+- **Lista FIDE:** usa la más nueva, o la que indique `ELO_LIST` (por ejemplo
+  `2027-01`). Solo contiene nombre, ELO, estado e ID: nunca el año de nacimiento
+  ni el sexo. La actualiza cada noche `elo-list-update.timer`.
+- **Órdenes de fuerzas:** el servidor los comprueba y no los guarda. El guardado
+  es opcional, está desactivado por defecto y se queda en el navegador.
+- **Jugadores de la temporada pasada:** `web/rosters.py` guarda club e ID, y cada
+  responsable solo ve los de su club. Cada año hay que cambiar en ese archivo la
+  temporada y los torneos, y ejecutarlo.
+- **Accesos:** solo por invitación de un uso. Cada persona tiene hasta dos
+  dispositivos y un club, y cada club una persona.
+
+### Comandos en el servidor
+
+```
+python3 -m web.manage invite /data Nombre "Club"   # nueva persona
+python3 -m web.manage device /data "Club"          # invitación para otro dispositivo
+python3 -m web.manage reset /data "Club"           # olvida sus dispositivos
+```
+
+La configuración de despliegue está en `web/deploy/`.
 
 ## Tests
 
 ```
 python3 -m unittest
 ```
+
+GitHub los ejecuta en cada PR, en sus propias máquinas. Para los de la web hacen
+falta las librerías de `web/requirements.txt`.
