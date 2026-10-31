@@ -11,7 +11,6 @@ ExecStart=/usr/bin/podman run --name elo-web --rm \
     --userns keep-id:uid=1000,gid=1000 \
     --cap-drop all --security-opt no-new-privileges \
     --read-only --tmpfs /tmp \
-    --memory 512m \
     -e HOME=/tmp \
     -v %h/elo-web/data:/data:Z \
     -v %h/elo-web/secrets:/secrets:ro,Z \
