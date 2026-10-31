@@ -5,8 +5,7 @@ All the names are made up.
 import json
 import tempfile
 import unittest
-from contextlib import redirect_stdout
-from io import BytesIO, StringIO
+from io import BytesIO
 from pathlib import Path
 from unittest import mock
 from urllib.error import HTTPError, URLError
@@ -40,6 +39,7 @@ class NormalizeNameTest(unittest.TestCase):
     def test_expands_abbreviations(self):
         self.assertEqual(normalize_name("SOTO, JOSE Mª"), "soto, jose maria")
         self.assertEqual(normalize_name("SOTO, FCO. JOSE"), "soto, francisco jose")
+        self.assertEqual(normalize_name("SOTO, FCO JOSE"), "soto, francisco jose")
 
     def test_fixes_spacing(self):
         self.assertEqual(normalize_name("Soto  Rey ,Ana"), "soto rey, ana")
@@ -160,14 +160,12 @@ class LoadFideListTest(unittest.TestCase):
     def load(self, *answers):
         '''
         Calls load_fide_list once per answer: a response or an exception.
-        Returns the last DF and all the requests and printed text
+        Returns the last DF and warning, and all the requests
         '''
-        output = StringIO()
-        with mock.patch.object(elo_common, "urlopen", side_effect=answers) as urlopen, \
-                redirect_stdout(output):
+        with mock.patch.object(elo_common, "urlopen", side_effect=answers) as urlopen:
             for _ in answers:
-                df_fide = load_fide_list()
-        return df_fide, [call.args[0] for call in urlopen.call_args_list], output.getvalue()
+                df_fide, date, warning = load_fide_list()
+        return df_fide, warning, [call.args[0] for call in urlopen.call_args_list]
 
     def test_first_run_downloads_and_saves_the_list(self):
         df_fide, _, _ = self.load(response(fide_zip(), "date1"))
@@ -176,11 +174,11 @@ class LoadFideListTest(unittest.TestCase):
 
     def test_unchanged_list_comes_from_disk(self):
         not_modified = HTTPError("url", 304, "Not Modified", {}, None)
-        df_fide, requests, output = self.load(response(fide_zip(), "date1"), not_modified)
+        df_fide, warning, requests = self.load(response(fide_zip(), "date1"), not_modified)
         self.assertEqual(requests[1].get_header("If-modified-since"), "date1")
         self.assertEqual(df_fide["key"].tolist(), ["soto, ana"])
         self.assertEqual(find_player(df_fide, "Soto, Ana")[0], EXACT)
-        self.assertNotIn("AVISO", output)
+        self.assertIsNone(warning)
 
     def test_newer_list_replaces_the_one_on_disk(self):
         self.load(response(fide_zip(), "date1"), response(fide_zip(), "date2"))
@@ -188,9 +186,9 @@ class LoadFideListTest(unittest.TestCase):
         self.assertEqual(info["last_modified"], "date2")
 
     def test_network_error_warns_and_uses_the_disk(self):
-        df_fide, _, output = self.load(response(fide_zip(), "date1"), URLError("no network"))
+        df_fide, warning, _ = self.load(response(fide_zip(), "date1"), URLError("no network"))
         self.assertEqual(len(df_fide), 1)
-        self.assertIn("AVISO", output)
+        self.assertIn("no network", warning)
 
     def test_network_error_without_list_on_disk_fails(self):
         with self.assertRaises(URLError):
