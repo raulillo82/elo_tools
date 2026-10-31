@@ -33,18 +33,18 @@
     <button id="sort" type="button">Ordenar por ELO</button>
     <button id="check" type="button" class="primary">Comprobar</button>
     <button id="clear" type="button">Vaciar</button>
-    <button id="csv" type="button">Descargar CSV</button>
+    <button id="excel" type="button">Descargar Excel</button>
   </div>
   <div id="verdict"></div>
 </section>
 
 <section class="card">
   <label class="check"><input type="checkbox" id="save-enabled"> Guardar mis órdenes en este dispositivo</label>
-  <p class="hint">Solo se guardan en este navegador, nunca en el servidor: nadie más puede verlos, y no pasan a tus otros dispositivos. El CSV se abre en Excel o Google Sheets.</p>
+  <p class="hint">Solo se guardan en este navegador, nunca en el servidor: nadie más puede verlos, y no pasan a tus otros dispositivos. El fichero Excel también se abre en Google Sheets y LibreOffice.</p>
   <div id="saved-area" hidden>
     <div class="row">
       <button id="save" type="button">Guardar este equipo</button>
-      <button id="csv-all" type="button">CSV de todos</button>
+      <button id="excel-all" type="button">Excel de todos</button>
     </div>
     <ul id="saved"></ul>
     <details>
@@ -54,7 +54,7 @@
         <li>Pasa ese fichero al otro dispositivo.</li>
         <li>Allí, activa el guardado, pulsa <strong>Restaurar copia</strong> y elige el fichero.</li>
       </ol>
-      <p class="hint">Solo vale ese fichero, no un CSV. Los equipos con el mismo nombre se sustituyen.</p>
+      <p class="hint">Solo vale ese fichero, no un Excel. Los equipos con el mismo nombre se sustituyen.</p>
       <div class="row">
         <button id="export" type="button">Descargar copia</button>
         <label class="button">Restaurar copia<input id="import" type="file" accept=".json" hidden></label>
@@ -63,4 +63,7 @@
   </div>
 </section>
 {% endblock %}
-{% block scripts %}<script src="{{ url_for('static', filename='app.js') }}"></script>{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='xlsx.js') }}"></script>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% endblock %}
