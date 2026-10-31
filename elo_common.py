@@ -4,7 +4,6 @@ FIDE list and finding players in it.
 '''
 import json
 import re
-import unicodedata
 from io import BytesIO
 from pathlib import Path
 from urllib.error import URLError
@@ -12,6 +11,8 @@ from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
 import pandas
+
+from elo_names import add_missing_comma, normalize_name  #noqa: F401
 
 FIDE_URL = "https://ratings.fide.com/download/standard_rating_list_xml.zip"
 
@@ -25,38 +26,8 @@ EXACT = "exact"          #The full name matches
 POSSIBLE = "possible"    #Partial match: a human should double check it
 NOT_FOUND = "not found"
 
-#FIDE tells namesakes apart adding the birth year to the name, sometimes with
-#a roman numeral: "Mata Martinez, Javier 1987", "Garcia, Manuel 1967 II"
-NAMESAKE_SUFFIX = re.compile(r"\s+\d{4}(\s+[ivx]+)?$")
-
 #Names in the Basque list are cut at this length: "Soto, Fernand" for Fernando
 MAX_BASQUE_NAME = 30
-
-
-def normalize_name(name):
-    '''
-    Returns a version of the name which is only useful to compare names:
-    lowercase, no accents, no "ñ", and without the FIDE namesake suffix.
-    '''
-    name = name.lower().replace("mª", "maria")
-    name = re.sub(r"\bfco\b\.?", "francisco", name)
-    #Split letters from their accents, then drop the accents
-    decomposed = unicodedata.normalize("NFKD", name)
-    name = "".join(char for char in decomposed if not unicodedata.combining(char))
-    name = re.sub(r"\s*,\s*", ", ", name)
-    name = " ".join(name.split())
-    return NAMESAKE_SUFFIX.sub("", name)
-
-
-def add_missing_comma(name):
-    '''
-    Some names in the Basque list have no comma. Assumes the last word is the
-    first name: "Perez Lopez Juan" becomes "Perez Lopez, Juan"
-    '''
-    words = name.split()
-    if "," in name or len(words) < 2:
-        return name
-    return " ".join(words[:-1]) + ", " + words[-1]
 
 
 def prepare_fide_list(df_fide):

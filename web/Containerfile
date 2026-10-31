@@ -1,0 +1,11 @@
+# Build from the root of the repository:
+#   podman build -f web/Containerfile -t elo-web:latest .
+FROM docker.io/library/python:3.13-slim
+COPY web/requirements.txt /app/web/requirements.txt
+RUN pip install --no-cache-dir -r /app/web/requirements.txt
+COPY elo_names.py /app/
+COPY web /app/web
+WORKDIR /app
+USER 1000:1000
+ENV ELO_DATA=/data ELO_SECRET_FILE=/secrets/secret.key PYTHONDONTWRITEBYTECODE=1
+CMD ["gunicorn", "--bind", "0.0.0.0:5003", "--workers", "1", "--threads", "4", "web.app:create_app()"]

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Accesos{% endblock %}
+{% block content %}
+<h1>Accesos</h1>
+{% if link %}
+<div class="notice good">
+  <p>Enlace de invitación, válido 72 horas y un solo uso. Solo se muestra ahora:</p>
+  <p class="wrap"><code>{{ link }}</code></p>
+</div>
+{% endif %}
+{% if clubs %}
+<form method="post" action="{{ url_for('admin_invite') }}" class="card">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>Nueva persona</h2>
+  <label>Nombre de pila <input name="name" required maxlength="40"></label>
+  <label>Club <select name="club">{% for club in clubs %}<option>{{ club }}</option>{% endfor %}</select></label>
+  <button>Crear invitación</button>
+</form>
+{% endif %}
+<h2>Personas</h2>
+{% for person in users %}
+<div class="card">
+  <p><strong>{{ person['name'] }}</strong> · {{ person['club'] }} · {{ person['devices'] }} dispositivo(s)</p>
+  <div class="row">
+    <form method="post" action="{{ url_for('admin_invite') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="user_id" value="{{ person['id'] }}">
+      <button>Invitar otro dispositivo</button>
+    </form>
+    <form method="post" action="{{ url_for('admin_devices', user_id=person['id']) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button>Quitar dispositivos</button>
+    </form>
+    {% if not person['is_admin'] %}
+    <form method="post" action="{{ url_for('admin_delete', user_id=person['id']) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger">Borrar</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
