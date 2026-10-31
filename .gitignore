@@ -2,5 +2,8 @@ elovasco.zip
 Enero2022/
 __pycache__/
 pyenv/
-players.py
+players.txt
+fide_history/
+fide_archive/
+exports/
 fide_cache.*
