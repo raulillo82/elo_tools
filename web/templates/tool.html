@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<p class="notice" id="list-label" data-user="{{ user['id'] }}">
+<p class="notice" id="list-label" data-user="{{ user['id'] }}" data-club="{{ user['club'] }}">
   {{ t('list_is', list=list_label['text']) }}
   {% if not list_label['official'] %}<strong>{{ t('provisional') }}</strong> {{ t('provisional_text') }}{% endif %}
 </p>
 
 <section class="card">
-  <label>{{ t('team') }} <input id="team-name" maxlength="40" placeholder="{{ user['club'] }} A"></label>
+  <label>{{ t('team') }} <input id="team-name" maxlength="40"></label>
+  <p class="hint" id="team-hint"></p>
   <details id="roster-area" hidden>
     <summary id="roster-title">{{ t('last_season') }}</summary>
     <p class="hint">{{ t('roster_hint') }}</p>

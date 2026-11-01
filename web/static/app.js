@@ -5,6 +5,7 @@
 const csrf = document.querySelector('meta[name="csrf"]').content;
 const $ = (id) => document.getElementById(id);
 const userId = $("list-label").dataset.user;
+const club = $("list-label").dataset.club;
 const SAVE_KEY = `elo-orders-${userId}`;
 const ENABLED_KEY = `elo-save-${userId}`;
 const DRAFT_KEY = "elo-draft";
@@ -230,6 +231,26 @@ async function check() {
   }
 }
 
+// The first letter not used by a saved team, so a saved "B" leaves "A" free
+function nextTeamName() {
+  const used = new Set(Object.keys(savedOrders()).map((name) => name.trim().toUpperCase()));
+  const clubName = club.toUpperCase();
+  for (const letter of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+    if (!used.has(letter) && !used.has(`${clubName} ${letter}`)) return `${club} ${letter}`;
+  }
+  return club;
+}
+
+function teamName() {
+  return $("team-name").value.trim() || nextTeamName();
+}
+
+function showTeamHint() {
+  const name = nextTeamName();
+  $("team-name").placeholder = name;
+  $("team-hint").textContent = t("team_hint", {club, name});
+}
+
 function savedOrders() {
   return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
 }
@@ -240,6 +261,7 @@ function writeOrders(orders) {
 }
 
 function showSaved() {
+  showTeamHint();
   const enabled = localStorage.getItem(ENABLED_KEY) === "1";
   $("save-enabled").checked = enabled;
   $("saved-area").hidden = !enabled;
@@ -281,9 +303,9 @@ function setSaving() {
 }
 
 function saveTeam() {
-  const name = $("team-name").value.trim();
-  if (!name) return alert(t("team_needs_name"));
   if (!team.length) return alert(t("team_empty"));
+  const name = teamName();
+  $("team-name").value = name;
   writeOrders({...savedOrders(), [name]: team});
 }
 
@@ -315,7 +337,7 @@ function downloadExcel(teams, name) {
 
 function exportTeam() {
   if (!team.length) return alert(t("team_empty"));
-  const name = $("team-name").value.trim() || t("default_team");
+  const name = teamName();
   downloadExcel({[name]: team}, `${name.replace(/[^\p{L}\p{N}]+/gu, "-")}.xlsx`);
 }
 
