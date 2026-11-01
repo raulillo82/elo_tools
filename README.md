@@ -47,7 +47,7 @@ python3 elo.py club "san viator" --activos --solo-fide
 - Un `?` junto a un ELO indica que el nombre no coincide del todo, o que hay
   homónimos. Debajo de la tabla se explica cada caso, en "A revisar".
 - `varios?` significa que hay más de un jugador FIDE posible.
-- `Var. desde 29/9/2026` es la diferencia de ELO FIDE con la lista de esa fecha,
+- `Var. desde octubre de 2026` es la diferencia de ELO FIDE con la lista de ese mes,
   y `=` que no ha cambiado. Se queda vacío para quien no estaba en esa lista como jugador
   español, porque el histórico solo guarda a los españoles.
 
