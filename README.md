@@ -137,6 +137,7 @@ La configuración de despliegue está en `web/deploy/`.
 
 ```
 python3 -m unittest
+node --test "web/tests/*.test.js"
 ```
 
 GitHub los ejecuta en cada PR, en sus propias máquinas. Para los de la web hacen

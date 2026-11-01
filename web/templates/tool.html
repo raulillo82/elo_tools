@@ -66,6 +66,7 @@
 {% endblock %}
 {% block scripts %}
 <script id="texts" type="application/json">{{ browser_texts|tojson }}</script>
+<script src="{{ url_for('static', filename='team_names.js') }}"></script>
 <script src="{{ url_for('static', filename='xlsx.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

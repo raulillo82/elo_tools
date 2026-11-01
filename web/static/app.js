@@ -232,38 +232,16 @@ async function check() {
   }
 }
 
-// The first letter not used by a saved team, so a saved "B" leaves "A" free
-function nextTeamName() {
-  const used = new Set(Object.keys(savedOrders()).map((name) => name.trim().toUpperCase()));
-  const clubName = club.toUpperCase();
-  for (const letter of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
-    if (!used.has(letter) && !used.has(`${clubName} ${letter}`)) return `${club} ${letter}`;
-  }
-  return club;
-}
-
-// Finds the club at the start of a name, whatever its case, accents or spaces
-function clubPrefix() {
-  const words = club.split(/\s+/).map((word) => [...word].map((letter) =>
-    `${letter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\p{M}*`).join(""));
-  return new RegExp(`^${words.join("\\s*")}(?=\\s|$)`, "iu");
-}
-
-// "rey", "san viator rey" and "SAN VIATOR Rey" all become "San Viator Rey".
-// Returns "" if there's nothing but the club, which means the default name
-function fullTeamName(text) {
-  const clean = text.normalize("NFD").trim().replace(clubPrefix(), "").trim().replace(/\s+/g, " ");
-  const label = clean.normalize("NFC");
-  if (!label) return "";
-  return `${club} ${label[0].toLocaleUpperCase("es")}${label.slice(1)}`;
+function defaultTeamName() {
+  return nextTeamName(club, Object.keys(savedOrders()));
 }
 
 function teamName() {
-  return fullTeamName($("team-name").value) || nextTeamName();
+  return fullTeamName($("team-name").value, club) || defaultTeamName();
 }
 
 function showTeamHint() {
-  const name = nextTeamName();
+  const name = defaultTeamName();
   $("team-name").placeholder = name;
   $("team-hint").textContent = t("team_hint", {club, name});
 }
@@ -393,7 +371,7 @@ $("search").addEventListener("input", () => {
   searchTimer = setTimeout(search, 400);
 });
 $("team-name").addEventListener("change", () => {
-  $("team-name").value = fullTeamName($("team-name").value);
+  $("team-name").value = fullTeamName($("team-name").value, club);
 });
 $("add-ids").addEventListener("click", addIds);
 $("add-manual").addEventListener("click", addManual);
