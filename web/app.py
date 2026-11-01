@@ -9,13 +9,23 @@ from datetime import timedelta
 from functools import wraps
 from pathlib import Path
 
-from flask import (Flask, abort, flash, g, jsonify, redirect, render_template, request,
-                   session, url_for)
+from flask import (
+    Flask,
+    abort,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from web.accounts import AccountError, Accounts, MIN_PASSWORD
+from web.accounts import MIN_PASSWORD, AccountError, Accounts
 from web.i18n import DEFAULT_LANGUAGE, LANGUAGES, browser_texts, text
 from web.lists import PlayerList
 from web.rosters import load_rosters

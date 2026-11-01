@@ -14,9 +14,17 @@ from zipfile import ZipFile
 import pandas
 
 import elo_common
-from elo_common import (EXACT, NOT_FOUND, POSSIBLE, add_missing_comma,
-                        find_player, load_fide_list, normalize_name,
-                        prepare_fide_list, status_text)
+from elo_common import (
+    EXACT,
+    NOT_FOUND,
+    POSSIBLE,
+    add_missing_comma,
+    find_player,
+    load_fide_list,
+    normalize_name,
+    prepare_fide_list,
+    status_text,
+)
 
 
 def fide_list(*players):

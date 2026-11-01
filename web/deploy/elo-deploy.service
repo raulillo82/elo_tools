@@ -1,0 +1,6 @@
+[Unit]
+Description=Despliega la web si main ha cambiado
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/elo-deploy.sh
