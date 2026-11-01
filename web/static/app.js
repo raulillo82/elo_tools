@@ -5,6 +5,7 @@
 const csrf = document.querySelector('meta[name="csrf"]').content;
 const $ = (id) => document.getElementById(id);
 const userId = $("list-label").dataset.user;
+const club = $("list-label").dataset.club;
 const SAVE_KEY = `elo-orders-${userId}`;
 const ENABLED_KEY = `elo-save-${userId}`;
 const DRAFT_KEY = "elo-draft";
@@ -13,6 +14,7 @@ const TEXTS = JSON.parse($("texts").textContent);
 let team = []; // {id, name, rating, inactive}. id is null for players typed by hand
 let searchTimer = null;
 let roster = []; // Last season's players of the club of this user
+let openedTeam = null; // The saved team being edited, which can be saved again
 
 function t(key, values = {}) {
   return TEXTS[key].replace(/\{(\w+)\}/g, (_, name) => values[name]);
@@ -230,6 +232,20 @@ async function check() {
   }
 }
 
+function defaultTeamName() {
+  return nextTeamName(club, Object.keys(savedOrders()));
+}
+
+function teamName() {
+  return fullTeamName($("team-name").value, club) || defaultTeamName();
+}
+
+function showTeamHint() {
+  const name = defaultTeamName();
+  $("team-name").placeholder = name;
+  $("team-hint").textContent = t("team_hint", {club, name});
+}
+
 function savedOrders() {
   return JSON.parse(localStorage.getItem(SAVE_KEY) || "{}");
 }
@@ -240,6 +256,7 @@ function writeOrders(orders) {
 }
 
 function showSaved() {
+  showTeamHint();
   const enabled = localStorage.getItem(ENABLED_KEY) === "1";
   $("save-enabled").checked = enabled;
   $("saved-area").hidden = !enabled;
@@ -253,6 +270,7 @@ function showSaved() {
     tools.append(button(t("open"), t("open_team", {name}), () => {
       team = players.map((player) => ({...player}));
       $("team-name").value = name;
+      openedTeam = name;
       clearVerdict();
       render();
     }), button(t("delete_label"), t("delete_team", {name}), () => {
@@ -281,9 +299,12 @@ function setSaving() {
 }
 
 function saveTeam() {
-  const name = $("team-name").value.trim();
-  if (!name) return alert(t("team_needs_name"));
   if (!team.length) return alert(t("team_empty"));
+  const name = teamName();
+  const exists = Object.hasOwn(savedOrders(), name);
+  if (exists && name !== openedTeam && !confirm(t("confirm_replace", {name}))) return;
+  $("team-name").value = name;
+  openedTeam = name;
   writeOrders({...savedOrders(), [name]: team});
 }
 
@@ -315,7 +336,7 @@ function downloadExcel(teams, name) {
 
 function exportTeam() {
   if (!team.length) return alert(t("team_empty"));
-  const name = $("team-name").value.trim() || t("default_team");
+  const name = teamName();
   downloadExcel({[name]: team}, `${name.replace(/[^\p{L}\p{N}]+/gu, "-")}.xlsx`);
 }
 
@@ -349,11 +370,20 @@ $("search").addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(search, 400);
 });
+$("team-name").addEventListener("change", () => {
+  $("team-name").value = fullTeamName($("team-name").value, club);
+});
 $("add-ids").addEventListener("click", addIds);
 $("add-manual").addEventListener("click", addManual);
 $("sort").addEventListener("click", sortByElo);
 $("check").addEventListener("click", check);
-$("clear").addEventListener("click", () => { team = []; clearVerdict(); render(); });
+$("clear").addEventListener("click", () => {
+  team = [];
+  openedTeam = null;
+  $("team-name").value = "";
+  clearVerdict();
+  render();
+});
 $("save-enabled").addEventListener("change", setSaving);
 $("save").addEventListener("click", saveTeam);
 $("export").addEventListener("click", exportOrders);

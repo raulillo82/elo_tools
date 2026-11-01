@@ -179,7 +179,12 @@ BROWSER_TEXTS = {
     "delete_label": ("Ezabatu", "Borrar"),
     "confirm_delete": ("Gailu honetan gordetako {n} talde ezabatuko dira. Jarraitu?",
                        "Se borrarán {n} equipos guardados en este dispositivo. ¿Seguir?"),
-    "team_needs_name": ("Jarri izena taldeari", "Ponle un nombre al equipo"),
+    "team_hint": ("Idatzi letra edo izena bakarrik, adibidez «A» edo «Erregea», eta klubaren izena "
+                  "gehituko zaio: «{club} Erregea». Hutsik uzten baduzu, izen hau izango du: {name}.",
+                  "Escribe solo la letra o el nombre, por ejemplo «A» o «Rey», y se añadirá el "
+                  "club: «{club} Rey». Si lo dejas vacío, se llamará {name}."),
+    "confirm_replace": ("Badago «{name}» izeneko talde bat. Ordeztu?",
+                        "Ya hay un equipo llamado «{name}». ¿Sustituirlo?"),
     "team_empty": ("Taldea hutsik dago", "El equipo está vacío"),
     "no_saved_teams": ("Ez dago gordetako talderik", "No hay equipos guardados"),
     "restored": ("{n} talde leheneratu dira", "Restaurados {n} equipos"),
@@ -189,7 +194,6 @@ BROWSER_TEXTS = {
     "column_team": ("Taldea", "Equipo"),
     "column_board": ("Taula", "Tablero"),
     "column_player": ("Jokalaria", "Jugador"),
-    "default_team": ("Taldea", "Equipo"),
     "excel_file": ("taulen-ordena.xlsx", "ordenes-de-fuerzas.xlsx"),
     "sheet_name": ("Taldeak", "Equipos"),
 }
