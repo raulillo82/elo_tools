@@ -14,6 +14,7 @@ const TEXTS = JSON.parse($("texts").textContent);
 let team = []; // {id, name, rating, inactive}. id is null for players typed by hand
 let searchTimer = null;
 let roster = []; // Last season's players of the club of this user
+let openedTeam = null; // The saved team being edited, which can be saved again
 
 function t(key, values = {}) {
   return TEXTS[key].replace(/\{(\w+)\}/g, (_, name) => values[name]);
@@ -241,8 +242,24 @@ function nextTeamName() {
   return club;
 }
 
+// Finds the club at the start of a name, whatever its case, accents or spaces
+function clubPrefix() {
+  const words = club.split(/\s+/).map((word) => [...word].map((letter) =>
+    `${letter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\p{M}*`).join(""));
+  return new RegExp(`^${words.join("\\s*")}(?=\\s|$)`, "iu");
+}
+
+// "rey", "san viator rey" and "SAN VIATOR Rey" all become "San Viator Rey".
+// Returns "" if there's nothing but the club, which means the default name
+function fullTeamName(text) {
+  const clean = text.normalize("NFD").trim().replace(clubPrefix(), "").trim().replace(/\s+/g, " ");
+  const label = clean.normalize("NFC");
+  if (!label) return "";
+  return `${club} ${label[0].toLocaleUpperCase("es")}${label.slice(1)}`;
+}
+
 function teamName() {
-  return $("team-name").value.trim() || nextTeamName();
+  return fullTeamName($("team-name").value) || nextTeamName();
 }
 
 function showTeamHint() {
@@ -275,6 +292,7 @@ function showSaved() {
     tools.append(button(t("open"), t("open_team", {name}), () => {
       team = players.map((player) => ({...player}));
       $("team-name").value = name;
+      openedTeam = name;
       clearVerdict();
       render();
     }), button(t("delete_label"), t("delete_team", {name}), () => {
@@ -305,7 +323,10 @@ function setSaving() {
 function saveTeam() {
   if (!team.length) return alert(t("team_empty"));
   const name = teamName();
+  const exists = Object.hasOwn(savedOrders(), name);
+  if (exists && name !== openedTeam && !confirm(t("confirm_replace", {name}))) return;
   $("team-name").value = name;
+  openedTeam = name;
   writeOrders({...savedOrders(), [name]: team});
 }
 
@@ -371,11 +392,20 @@ $("search").addEventListener("input", () => {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(search, 400);
 });
+$("team-name").addEventListener("change", () => {
+  $("team-name").value = fullTeamName($("team-name").value);
+});
 $("add-ids").addEventListener("click", addIds);
 $("add-manual").addEventListener("click", addManual);
 $("sort").addEventListener("click", sortByElo);
 $("check").addEventListener("click", check);
-$("clear").addEventListener("click", () => { team = []; clearVerdict(); render(); });
+$("clear").addEventListener("click", () => {
+  team = [];
+  openedTeam = null;
+  $("team-name").value = "";
+  clearVerdict();
+  render();
+});
 $("save-enabled").addEventListener("change", setSaving);
 $("save").addEventListener("click", saveTeam);
 $("export").addEventListener("click", exportOrders);

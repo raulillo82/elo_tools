@@ -179,10 +179,12 @@ BROWSER_TEXTS = {
     "delete_label": ("Ezabatu", "Borrar"),
     "confirm_delete": ("Gailu honetan gordetako {n} talde ezabatuko dira. Jarraitu?",
                        "Se borrarán {n} equipos guardados en este dispositivo. ¿Seguir?"),
-    "team_hint": ("Jarri izena taldeari, adibidez «{club} A» edo «{club} Erregea». Hutsik uzten "
-                  "baduzu, izen hau izango du: {name}.",
-                  "Ponle nombre a tu equipo, por ejemplo «{club} A» o «{club} Rey». Si lo dejas "
-                  "vacío, se llamará {name}."),
+    "team_hint": ("Idatzi letra edo izena bakarrik, adibidez «A» edo «Erregea», eta klubaren izena "
+                  "gehituko zaio: «{club} Erregea». Hutsik uzten baduzu, izen hau izango du: {name}.",
+                  "Escribe solo la letra o el nombre, por ejemplo «A» o «Rey», y se añadirá el "
+                  "club: «{club} Rey». Si lo dejas vacío, se llamará {name}."),
+    "confirm_replace": ("Badago «{name}» izeneko talde bat. Ordeztu?",
+                        "Ya hay un equipo llamado «{name}». ¿Sustituirlo?"),
     "team_empty": ("Taldea hutsik dago", "El equipo está vacío"),
     "no_saved_teams": ("Ez dago gordetako talderik", "No hay equipos guardados"),
     "restored": ("{n} talde leheneratu dira", "Restaurados {n} equipos"),

@@ -115,8 +115,9 @@ que sigue siendo por correo a la federación.
 - **Jugadores de la temporada pasada:** `web/rosters.py` guarda club e ID, y cada
   responsable solo ve los de su club. Cada año hay que cambiar en ese archivo la
   temporada y los torneos, y ejecutarlo.
-- **Nombre del equipo:** si se deja vacío, toma la primera letra libre entre los
-  equipos guardados en ese dispositivo: `Club A`, `Club B`...
+- **Nombre del equipo:** basta con escribir `a` o `rey`: se añade el club y la
+  mayúscula. Si se deja vacío, toma la primera letra libre entre los equipos
+  guardados en ese dispositivo.
 - **Idiomas:** euskera, que es el idioma por defecto, y castellano. La web recuerda
   el que eligió cada persona. Los textos están en `web/i18n.py`.
 - **Accesos:** solo por invitación de un uso. Cada persona tiene hasta dos
