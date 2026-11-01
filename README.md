@@ -136,7 +136,7 @@ La configuración de despliegue está en `web/deploy/`.
 ### Despliegue automático
 
 `main` no acepta cambios sin una PR con los tests en verde. El servidor consulta
-`main` cada minuto con `elo-deploy.timer` y despliega si ha cambiado algo de la
+`main` cada 5 minutos con `elo-deploy.timer` y despliega si ha cambiado algo de la
 web. Si la versión nueva no responde, vuelve a la anterior. Es el servidor quien
 pregunta, así que GitHub no puede ejecutar nada en él. El script vive en
 `~/.local/bin`: si cambia, hay que copiarlo a mano.

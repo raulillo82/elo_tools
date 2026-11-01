@@ -73,4 +73,6 @@ fi
 
 echo "$target" > "$STATE/deployed"
 rm -f "$STATE/failed"
+# Each build leaves the image before the previous one without a tag
+podman image prune -f > /dev/null
 log "deployed $target"

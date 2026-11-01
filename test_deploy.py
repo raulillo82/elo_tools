@@ -79,11 +79,12 @@ class DeployTest(unittest.TestCase):
         self.assertIn("podman build", self.called())
         self.assertIn("systemctl --user restart elo-web.service", self.called())
         self.assertEqual(self.deployed(), self.head())
+        self.assertIn("podman image prune", self.called())
 
     def test_changes_outside_the_image_dont_restart(self):
         self.commit("README.md", "docs")
         self.assertEqual(self.run_deploy().returncode, 0)
-        self.assertEqual(self.called(), "")
+        self.assertNotIn("restart", self.called())
         self.assertEqual(self.deployed(), self.head())
 
     def test_failed_version_goes_back(self):
