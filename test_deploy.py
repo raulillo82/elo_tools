@@ -18,6 +18,12 @@ def git(folder, *args):
                     "-c", "commit.gpgsign=false", *args], check=True, capture_output=True)
 
 
+class ContainerfileTest(unittest.TestCase):
+    def test_base_image_is_fixed_by_digest(self):
+        text = (SCRIPT.parents[1] / "Containerfile").read_text()
+        self.assertRegex(text, r"(?m)^FROM \S+:\S+@sha256:[0-9a-f]{64}$")
+
+
 class DeployTest(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
