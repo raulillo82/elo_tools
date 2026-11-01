@@ -9,6 +9,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest import mock
 from urllib.error import HTTPError
@@ -205,17 +206,58 @@ class UpdateListTest(unittest.TestCase):
         response.__enter__.return_value.headers = {"Last-Modified": "date1"}
         return response
 
-    def test_new_list(self):
-        with mock.patch.object(lists, "urlopen", return_value=self.fake_zip()):
+    def test_new_list_is_named_after_its_month(self):
+        with mock.patch.object(lists, "urlopen", return_value=self.fake_zip()), \
+                mock.patch.object(lists, "list_month", return_value=(2026, 11)):
             path = lists.update_list(self.folder)
-        self.assertEqual(path.name, "players-2026-10.sqlite")
+        self.assertEqual(path.name, "players-2026-11.sqlite")
 
     def test_unchanged_list(self):
         not_modified = HTTPError("url", 304, "Not Modified", {}, None)
-        with mock.patch.object(lists, "urlopen", side_effect=[self.fake_zip(), not_modified]) as url:
+        with mock.patch.object(lists, "urlopen", side_effect=[self.fake_zip(), not_modified]) as url, \
+                mock.patch.object(lists, "list_month", return_value=(2026, 11)):
             lists.update_list(self.folder)
             self.assertIsNone(lists.update_list(self.folder))
         self.assertEqual(url.call_args.args[0].get_header("If-modified-since"), "date1")
+
+
+class ListMonthTest(unittest.TestCase):
+    def month(self, today, published):
+        def exists(year, month):
+            return (year, month) in published
+        with mock.patch.object(lists, "archive_exists", side_effect=exists):
+            return lists.list_month(today)
+
+    def test_next_list_published_before_the_month_starts(self):
+        self.assertEqual(self.month(date(2026, 10, 31), {(2026, 11)}), (2026, 11))
+
+    def test_inside_the_month(self):
+        self.assertEqual(self.month(date(2026, 11, 15), {(2026, 11)}), (2026, 11))
+
+    def test_new_year(self):
+        self.assertEqual(self.month(date(2026, 12, 31), {(2027, 1)}), (2027, 1))
+        self.assertEqual(self.month(date(2026, 12, 15), set()), (2026, 12))
+
+    def test_archive_url(self):
+        with mock.patch.object(lists, "urlopen", return_value=mock.MagicMock()) as url:
+            self.assertTrue(lists.archive_exists(2027, 1))
+        self.assertIn("standard_jan27frl_xml.zip", url.call_args.args[0].full_url)
+        self.assertEqual(url.call_args.args[0].get_method(), "HEAD")
+
+    def test_missing_archive(self):
+        error = HTTPError("url", 404, "Not Found", {}, None)
+        with mock.patch.object(lists, "urlopen", side_effect=error):
+            self.assertFalse(lists.archive_exists(2027, 1))
+
+
+class DeployTest(unittest.TestCase):
+    def test_list_update_doesnt_start_a_second_container(self):
+        #With :Z, a second container takes the SELinux label of the data folder
+        #and the web can't open its accounts any more
+        unit = Path(__file__).parent / "web" / "deploy" / "elo-list-update.service"
+        text = unit.read_text(encoding="utf-8")
+        self.assertIn("podman exec elo-web", text)
+        self.assertNotIn("podman run", text)
 
 
 class AccountsTest(unittest.TestCase):

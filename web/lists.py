@@ -12,8 +12,9 @@ import sqlite3
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
+from datetime import date
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 from zipfile import ZipFile
 
@@ -21,6 +22,8 @@ from elo_names import normalize_name
 from web.i18n import DEFAULT_LANGUAGE, month_label
 
 PLAYERS_URL = "https://ratings.fide.com/download/players_list_xml.zip"
+ARCHIVE_URL = "https://ratings.fide.com/download/standard_{name}frl_xml.zip"
+ARCHIVE_MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 INFO_FILE = "list_info.json"
 MAX_RESULTS = 10
 #Unrated players from other countries can't be found: they can be typed by hand
@@ -73,6 +76,29 @@ def build_list(xml_file, path):
     os.replace(temporary, path)
 
 
+def archive_exists(year, month):
+    '''
+    Returns True if FIDE has published the list of that month
+    '''
+    name = f"{ARCHIVE_MONTHS[month - 1]}{year % 100:02}"
+    try:
+        with urlopen(Request(ARCHIVE_URL.format(name=name), method="HEAD"), timeout=30):
+            return True
+    except (URLError, TimeoutError):
+        return False
+
+
+def list_month(today=None):
+    '''
+    Returns the (year, month) of the current FIDE list. The date of the file
+    doesn't say it: the November list is dated on 31 October. FIDE archives each
+    list under its month, and the new one appears before that month starts.
+    '''
+    today = today or date.today()
+    following = (today.year + today.month // 12, today.month % 12 + 1)
+    return following if archive_exists(*following) else (today.year, today.month)
+
+
 def update_list(folder):
     '''
     Downloads the FIDE list if it has changed. Returns the new file, or None
@@ -95,7 +121,7 @@ def update_list(folder):
             raise
         with ZipFile(data) as archive:
             name = archive.namelist()[0]
-            year, month = archive.getinfo(name).date_time[:2]
+            year, month = list_month()
             path = folder / f"players-{year:04}-{month:02}.sqlite"
             with archive.open(name) as xml_file:
                 build_list(xml_file, path)
