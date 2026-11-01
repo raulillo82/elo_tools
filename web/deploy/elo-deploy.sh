@@ -35,7 +35,9 @@ healthy() {
 # The tags are only moved once the new image has been built
 restart_new_version() {
     podman tag "$IMAGE:latest" "$IMAGE:previous" || return 1
-    podman build -q -f "$REPO/web/Containerfile" -t "$IMAGE:latest" "$REPO" || return 1
+    # --pull=newer: without it the base image stays at whatever was first
+    # downloaded, with no security fixes, until its tag changes in Containerfile
+    podman build -q --pull=newer -f "$REPO/web/Containerfile" -t "$IMAGE:latest" "$REPO" || return 1
     systemctl --user restart elo-web.service && healthy
 }
 

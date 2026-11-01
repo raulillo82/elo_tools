@@ -81,6 +81,11 @@ class DeployTest(unittest.TestCase):
         self.assertEqual(self.deployed(), self.head())
         self.assertIn("podman image prune", self.called())
 
+    def test_build_looks_for_a_newer_base_image(self):
+        self.commit("web/app.py", "two")
+        self.run_deploy()
+        self.assertIn("podman build -q --pull=newer", self.called())
+
     def test_changes_outside_the_image_dont_restart(self):
         self.commit("README.md", "docs")
         self.assertEqual(self.run_deploy().returncode, 0)
