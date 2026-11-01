@@ -1,6 +1,9 @@
 # Build from the root of the repository:
 #   podman build -f web/Containerfile -t elo-web:latest .
-FROM docker.io/library/python:3.15-slim
+# Fixed by digest so what runs is what a pull request reviewed. Dependabot
+# proposes the new one. It must be the multi-architecture digest (the image
+# index), not the one for a single architecture: this runs on arm64.
+FROM docker.io/library/python:3.15-slim@sha256:94d3426f1def7db4a106a232ac121bfd975393e5dfd40a619b955fae45fe7913
 COPY web/requirements.txt /app/web/requirements.txt
 RUN pip install --no-cache-dir -r /app/web/requirements.txt
 COPY elo_names.py /app/
