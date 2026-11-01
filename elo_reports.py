@@ -24,7 +24,14 @@ import pandas
 from pandas import DataFrame
 
 from elo_basque import load_basque_lists
-from elo_common import EXACT, find_player, load_fide_list, normalize_name, status_text
+from elo_common import (
+    EXACT,
+    find_player,
+    load_fide_list,
+    month_text,
+    normalize_name,
+    status_text,
+)
 from elo_history import previous_ratings, update_history
 
 MAX_SEARCH_RESULTS = 30
@@ -42,19 +49,21 @@ class EloData:
     Everything which has to be loaded just once
     '''
     fide: DataFrame
-    fide_date: str
+    fide_month: str
     fide_warning: str | None
     clubs: DataFrame
     basque: DataFrame
     previous_ratings: dict
-    previous_date: str | None
+    previous_month: str | None
 
 
 def load_data():
-    fide, fide_date, fide_warning = load_fide_list()
-    update_history(fide, fide_date)
+    fide, fide_month, fide_warning = load_fide_list()
+    update_history(fide, fide_month)
     clubs, basque = load_basque_lists()
-    return EloData(fide, fide_date, fide_warning, clubs, basque, *previous_ratings())
+    ratings, previous_month = previous_ratings()
+    return EloData(fide, month_text(fide_month), fide_warning, clubs, basque, ratings,
+                   month_text(previous_month) if previous_month else None)
 
 
 def read_players_file(path=PLAYERS_FILE):
@@ -217,7 +226,7 @@ def to_records(rows):
     return records
 
 
-def to_csv(rows, previous_date=None):
+def to_csv(rows, previous_month=None):
     '''
     Returns the text of a CSV file with the player rows. It uses ";" because
     that's what Excel expects in Spain. The change column says since when
@@ -225,8 +234,8 @@ def to_csv(rows, previous_date=None):
     output = StringIO()
     writer = csv.writer(output, delimiter=";")
     headers = list(EXPORT_COLUMNS)
-    if previous_date:
-        headers[CHANGE_COLUMN] += f" desde {previous_date}"
+    if previous_month:
+        headers[CHANGE_COLUMN] += f" desde {previous_month}"
     writer.writerow(headers)
     writer.writerows(record.values() for record in to_records(rows))
     return output.getvalue()

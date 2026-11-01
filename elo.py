@@ -108,33 +108,33 @@ def format_doubts(rows):
     return ""
 
 
-def format_players(title, rows, previous_date=None):
+def format_players(title, rows, previous_month=None):
     '''
     Returns the text of a table of player rows, and the doubts below it
     '''
-    change = f"Var. desde {previous_date}" if previous_date else "Var."
+    change = f"Var. desde {previous_month}" if previous_month else "Var."
     headers = [title, "ELO vasco", "ELO FIDE", change, "Estado"]
     text = format_table(headers, [player_cells(row) for row in rows])
     return text + format_doubts(rows)
 
 
-def export_rows(title, rows, previous_date):
+def export_rows(title, rows, previous_month):
     '''
     Saves the player rows to a CSV file. utf-8-sig lets Excel read accents
     '''
     EXPORT_FOLDER.mkdir(exist_ok=True)
     name = re.sub(r"\W+", "_", title.lower()).strip("_")
     path = EXPORT_FOLDER / f"{name}.csv"
-    path.write_text(elo_reports.to_csv(rows, previous_date), encoding="utf-8-sig")
+    path.write_text(elo_reports.to_csv(rows, previous_month), encoding="utf-8-sig")
     print(f"Guardado en {path}")
 
 
 def show_rows(data, title, rows, options):
     rows = elo_reports.filter_rows(rows, options.show_inactive, options.show_without_fide)
-    print(format_players(title, rows, data.previous_date))
+    print(format_players(title, rows, data.previous_month))
     print()
     if options.export:
-        export_rows(title, rows, data.previous_date)
+        export_rows(title, rows, data.previous_month)
 
 
 def show_my_players(data, options):
@@ -249,7 +249,7 @@ def main():
 
     options = Options(not args.activos, not args.solo_fide, args.csv)
     data = elo_reports.load_data()
-    print(f"ELOs FIDE a fecha de {data.fide_date}. "
+    print(f"ELOs FIDE de la lista de {data.fide_month}. "
           f"ELOs vascos de {ELOVASCO_DATE}, no se comprueba si hay alguno más reciente.")
     if data.fide_warning:
         print(f"AVISO: {data.fide_warning}")

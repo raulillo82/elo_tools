@@ -155,12 +155,18 @@ def response(data, last_modified):
     return resp
 
 
+class MonthTextTest(unittest.TestCase):
+    def test_month_in_words(self):
+        self.assertEqual(elo_common.month_text("2026-11"), "noviembre de 2026")
+
+
 class LoadFideListTest(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
         for name, value in (("FIDE_CACHE", Path(folder.name, "list.parquet")),
-                            ("FIDE_CACHE_INFO", Path(folder.name, "list.json"))):
+                            ("FIDE_CACHE_INFO", Path(folder.name, "list.json")),
+                            ("list_month", lambda: (2026, 11))):
             patcher = mock.patch.object(elo_common, name, value)
             patcher.start()
             self.addCleanup(patcher.stop)
@@ -172,13 +178,14 @@ class LoadFideListTest(unittest.TestCase):
         '''
         with mock.patch.object(elo_common, "urlopen", side_effect=answers) as urlopen:
             for _ in answers:
-                df_fide, date, warning = load_fide_list()
+                df_fide, self.month, warning = load_fide_list()
         return df_fide, warning, [call.args[0] for call in urlopen.call_args_list]
 
     def test_first_run_downloads_and_saves_the_list(self):
         df_fide, _, _ = self.load(response(fide_zip(), "date1"))
         self.assertEqual(df_fide["key"].tolist(), ["soto, ana"])
         self.assertTrue(elo_common.FIDE_CACHE.exists())
+        self.assertEqual(self.month, "2026-11")
 
     def test_unchanged_list_comes_from_disk(self):
         not_modified = HTTPError("url", 304, "Not Modified", {}, None)
@@ -187,6 +194,7 @@ class LoadFideListTest(unittest.TestCase):
         self.assertEqual(df_fide["key"].tolist(), ["soto, ana"])
         self.assertEqual(find_player(df_fide, "Soto, Ana")[0], EXACT)
         self.assertIsNone(warning)
+        self.assertEqual(self.month, "2026-11")
 
     def test_newer_list_replaces_the_one_on_disk(self):
         self.load(response(fide_zip(), "date1"), response(fide_zip(), "date2"))
