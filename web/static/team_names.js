@@ -8,12 +8,19 @@ function clubPrefix(club) {
   return new RegExp(`^${words.join("\\s*")}(?=\\s|$)`, "iu");
 }
 
+// A word all in capitals keeps only the first one: "REY" becomes "Rey". Single
+// letters and words with numbers, like "B2", stay as they are
+function softenCapitals(word) {
+  if (!/^\p{Lu}{2,}$/u.test(word)) return word;
+  return `${word[0]}${word.slice(1).toLocaleLowerCase("es")}`;
+}
+
 // "rey", "san viator rey" and "SAN VIATOR Rey" all become "San Viator Rey".
 // Returns "" if there's nothing but the club, which means the default name
 function fullTeamName(text, club) {
   const clean = text.normalize("NFD").trim().replace(clubPrefix(club), "").trim()
     .replace(/\s+/g, " ");
-  const label = clean.normalize("NFC");
+  const label = clean.normalize("NFC").split(" ").map(softenCapitals).join(" ");
   if (!label) return "";
   return `${club} ${label[0].toLocaleUpperCase("es")}${label.slice(1)}`;
 }

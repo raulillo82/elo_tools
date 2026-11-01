@@ -13,11 +13,23 @@ const SAN_VIATOR = [
   ["Rey", "San Viator Rey"],
   ["dama", "San Viator Dama"],
   ["zaldi", "San Viator Zaldi"],
-  // The rest of the name stays as it was written
-  ["REY", "San Viator REY"],
+  // Words all in capitals keep only the first one
+  ["REY", "San Viator Rey"],
+  ["DAMA", "San Viator Dama"],
+  ["CABALLO NEGRO", "San Viator Caballo Negro"],
+  ["caballo NEGRO", "San Viator Caballo Negro"],
+  ["ABC", "San Viator Abc"],
+  ["SAN VIATOR REY", "San Viator Rey"],
+  // Everything else stays as it was written
   ["reY", "San Viator ReY"],
   ["caballo negro", "San Viator Caballo negro"],
+  ["Caballo Negro", "San Viator Caballo Negro"],
+  ["caballo Negro", "San Viator Caballo Negro"],
   ["b2", "San Viator B2"],
+  ["B2", "San Viator B2"],
+  ["A2B", "San Viator A2B"],
+  ["A", "San Viator A"],
+  ["a b", "San Viator A b"],
   ["2", "San Viator 2"],
   ["1º", "San Viator 1º"],
   // Spaces
@@ -38,7 +50,7 @@ const SAN_VIATOR = [
   ["sán viátor a", "San Viator A"],
   // Accents and enye in the name
   ["ñandú", "San Viator Ñandú"],
-  ["ÑANDÚ", "San Viator ÑANDÚ"],
+  ["ÑANDÚ", "San Viator Ñandú"],
   ["águila", "San Viator Águila"],
   ["san viator águila", "San Viator Águila"],
   // Words which only start like the club
