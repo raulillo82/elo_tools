@@ -1,6 +1,6 @@
 # Build from the root of the repository:
 #   podman build -f web/Containerfile -t elo-web:latest .
-FROM docker.io/library/python:3.13-slim
+FROM docker.io/library/python:3.15-slim
 COPY web/requirements.txt /app/web/requirements.txt
 RUN pip install --no-cache-dir -r /app/web/requirements.txt
 COPY elo_names.py /app/
