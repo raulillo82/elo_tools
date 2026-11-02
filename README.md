@@ -112,6 +112,8 @@ que sigue siendo por correo a la federación.
   es opcional, está desactivado por defecto y se queda en el navegador. Se
   pueden descargar en Excel, también para Google Sheets, o en una copia de seguridad
   para pasarlos a otro dispositivo.
+- **Liga Vasca:** `web/rosters.py` añade quienes jugaron División de Honor y Primera,
+  según Chess Results, en `rosters_basque.json`. Cada club ve el filtro solo si tiene datos.
 - **Jugadores de la temporada pasada:** `web/rosters.py` guarda club e ID, y cada
   responsable solo ve los de su club. Cada año hay que cambiar en ese archivo la
   temporada y los torneos, y ejecutarlo.

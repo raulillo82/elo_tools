@@ -28,7 +28,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from web.accounts import MIN_PASSWORD, AccountError, Accounts
 from web.i18n import DEFAULT_LANGUAGE, LANGUAGES, browser_texts, text
 from web.lists import PlayerList
-from web.rosters import load_rosters
+from web.rosters import load_basque_rosters, load_rosters
 from web.rules import DEFAULT_MARGIN, check_order
 
 DEVICE_COOKIE = "elo_device"
@@ -195,12 +195,19 @@ def create_app(config=None):
     @limiter.limit("30 per minute")
     def roster():
         '''
-        Last season's players of the club of the user, and of no other club
+        Last season's players of the club of the user, and of no other club,
+        each one with the leagues where they were
         '''
         season, rosters = load_rosters(app.config["DATA_FOLDER"])
-        found = players.get(rosters.get(g.user["club"], []))
-        ordered = sorted(found.values(), key=lambda player: (player["rating"] is None,
-                                                             -(player["rating"] or 0), player["name"]))
+        club = g.user["club"]
+        leagues = {fide_id: ["alava"] for fide_id in rosters.get(club, [])}
+        for division, ids in load_basque_rosters(app.config["DATA_FOLDER"]).get(club, {}).items():
+            for fide_id in ids:
+                leagues.setdefault(fide_id, []).append(division)
+        found = players.get(list(leagues))
+        ordered = sorted(({**player, "leagues": leagues[fide_id]} for fide_id, player in found.items()),
+                         key=lambda player: (player["rating"] is None,
+                                             -(player["rating"] or 0), player["name"]))
         return jsonify(season=season, players=ordered)
 
     @app.post("/api/check")

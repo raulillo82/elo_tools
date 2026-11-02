@@ -32,6 +32,10 @@ button.link { min-height: 0; padding: 0; border: 0; background: none; color: var
 #verdict ul { margin: 0; padding-left: 1.2rem; font-size: .92rem; }
 #saved { list-style: none; padding: 0; margin: .8rem 0 0; } #saved li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .3rem 0; }
 #roster label.check { font-weight: 400; margin-bottom: .1rem; min-height: 40px; }
+#roster label[hidden] { display: none; } #roster small { color: #52606d; margin-left: .3rem; }
+#roster-filter { display: flex; flex-wrap: wrap; gap: .2rem 1rem; border: 0; padding: 0; margin: 0 0 .5rem; }
+#roster-filter[hidden] { display: none; } #roster-filter legend { font-weight: 600; padding: 0; }
+#roster-filter label.check { font-weight: 400; margin: 0; min-height: 40px; }
 #saved-area details { margin-top: .8rem; } ol.hint { padding-left: 1.2rem; }
 .languages { display: flex; gap: .3rem; margin: 0 0 0 auto; order: 1; }
 .languages button { min-height: 40px; padding: .2rem .4rem; gap: .3rem; font-size: .8rem; opacity: .6; }

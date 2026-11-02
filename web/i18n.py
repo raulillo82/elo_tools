@@ -55,6 +55,10 @@ TEXTS = {
                          "oinarrien arabera.",
                          "el orden oficial se hace con la lista de enero, según las bases del año."),
     "team": ("Taldea", "Equipo"),
+    "roster_show": ("Erakutsi", "Mostrar"),
+    "league_both": ("Biak", "Ambas"),
+    "league_alava": ("Arabako liga", "Liga alavesa"),
+    "league_basque": ("Euskal Liga", "Liga vasca"),
     "last_season": ("Aurreko denboraldiko jokalariak", "Jugadores de la temporada pasada"),
     "roster_hint": ("Markatu talde honetan nahi dituzunak. Zure klubekoak bakarrik ikusten dituzu.",
                     "Marca los que quieras en este equipo. Solo ves a los de tu club."),
@@ -144,6 +148,9 @@ TEXTS = {
 #Texts used by the browser, in app.js
 BROWSER_TEXTS = {
     "no_elo": ("ELOrik gabe", "sin ELO"),
+    "tag_alava": ("Araba", "Álava"),
+    "tag_honor": ("Ohorezko Maila", "División de Honor"),
+    "tag_primera": ("Lehen Maila", "Primera"),
     "inactive": ("ez-aktiboa", "inactivo"),
     "move_up": ("Igo: {name}", "Subir a {name}"),
     "move_down": ("Jaitsi: {name}", "Bajar a {name}"),
