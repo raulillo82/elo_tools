@@ -11,6 +11,12 @@
   <details id="roster-area" hidden>
     <summary id="roster-title">{{ t('last_season') }}</summary>
     <p class="hint">{{ t('roster_hint') }}</p>
+    <fieldset id="roster-filter" hidden>
+      <legend>{{ t('roster_show') }}</legend>
+      <label class="check"><input type="radio" name="roster-league" value="both" checked> {{ t('league_both') }}</label>
+      <label class="check"><input type="radio" name="roster-league" value="alava"> {{ t('league_alava') }}</label>
+      <label class="check"><input type="radio" name="roster-league" value="basque"> {{ t('league_basque') }}</label>
+    </fieldset>
     <div id="roster"></div>
   </details>
   <label>{{ t('add_by_name') }} <input id="search" autocomplete="off" placeholder="{{ t('name_placeholder') }}"></label>
@@ -67,6 +73,7 @@
 {% block scripts %}
 <script id="texts" type="application/json">{{ browser_texts|tojson }}</script>
 <script src="{{ url_for('static', filename='team_names.js') }}"></script>
+<script src="{{ url_for('static', filename='roster_filter.js') }}"></script>
 <script src="{{ url_for('static', filename='xlsx.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

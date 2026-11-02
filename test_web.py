@@ -47,16 +47,6 @@ TEAM_PAGE = """<table><tr><th>Brd.</th><th>Name</th><th>FIDE ID</th></tr>
 
 
 class TextsTest(unittest.TestCase):
-    def test_both_languages_use_the_same_values(self):
-        for key, (basque, spanish) in {**i18n.TEXTS, **i18n.BROWSER_TEXTS}.items():
-            self.assertEqual(sorted(re.findall(r"\{\w+\}", basque)),
-                             sorted(re.findall(r"\{\w+\}", spanish)), key)
-
-    def test_nothing_is_left_empty(self):
-        for key, pair in {**i18n.TEXTS, **i18n.BROWSER_TEXTS}.items():
-            self.assertEqual(len(pair), 2, key)
-            self.assertTrue(all(pair), key)
-
     def test_every_text_in_the_web_exists(self):
         web = Path(__file__).parent / "web"
         used = set()
@@ -72,6 +62,29 @@ class TextsTest(unittest.TestCase):
 
 
 class RostersTest(unittest.TestCase):
+    def test_basque_teams_any_federation_and_first_team(self):
+        page = ('<table><tr class="CRg1b"><td colspan="18">&nbsp;&nbsp;1. Rey (Elo medio:2000)</td></tr>'
+                '<tr><th>Nombre</th></tr>'
+                '<tr class="CRng2 FRA"><td><a href="http://ratings.fide.com/profile/633">633</a></td></tr>'
+                '<tr class="CRg1b"><td colspan="18">&nbsp;&nbsp;2. Dama B (Elo medio:1900)</td></tr>'
+                '<tr><td><a href="http://ratings.fide.com/profile/22">22</a></td></tr></table>')
+        self.assertEqual(rosters.basque_teams(page), {"Rey": [633], "Dama B": [22]})
+
+    def test_club_of_basque_team(self):
+        self.assertEqual(rosters.club_of_basque_team("Egidazu"), "Eguidazu")
+        self.assertEqual(rosters.club_of_basque_team("Martintxo"), "Martintxo")
+        self.assertIsNone(rosters.club_of_basque_team("Zuri Baltza"))
+
+    def test_both_languages_use_the_same_values(self):
+        for key, (basque, spanish) in {**i18n.TEXTS, **i18n.BROWSER_TEXTS}.items():
+            self.assertEqual(sorted(re.findall(r"\{\w+\}", basque)),
+                             sorted(re.findall(r"\{\w+\}", spanish)), key)
+
+    def test_nothing_is_left_empty(self):
+        for key, pair in {**i18n.TEXTS, **i18n.BROWSER_TEXTS}.items():
+            self.assertEqual(len(pair), 2, key)
+            self.assertTrue(all(pair), key)
+
     def test_ids_of_the_team(self):
         self.assertEqual(rosters.roster_ids(TEAM_PAGE), [123, 456])
 
@@ -352,6 +365,7 @@ class WebTest(unittest.TestCase):
                                "DATA_FOLDER": folder.name})
         Path(folder.name, rosters.ROSTERS_FILE).write_text(json.dumps(
             {"season": 2026, "clubs": {"Laudio": [2, 1, 999], "Martintxo": [3]}}), encoding="utf-8")
+        self.folder = folder.name
         limiter.enabled = False
         self.addCleanup(setattr, limiter, "enabled", True)
         self.client = self.app.test_client()
@@ -433,6 +447,20 @@ class WebTest(unittest.TestCase):
         self.join()
         answer = self.api("roster", {"club": "Martintxo"}).get_json()
         self.assertNotIn(3, [player["id"] for player in answer["players"]])
+
+    def test_players_say_their_leagues(self):
+        Path(self.folder, rosters.BASQUE_ROSTERS_FILE).write_text(json.dumps(
+            {"season": 2026, "clubs": {"Laudio": {"primera": [1, 3]}, "Martintxo": {"honor": [2]}}}),
+            encoding="utf-8")
+        self.join()
+        answer = self.api("roster", {}).get_json()
+        leagues = {player["id"]: player["leagues"] for player in answer["players"]}
+        self.assertEqual(leagues, {1: ["alava", "primera"], 2: ["alava"], 3: ["primera"]})
+
+    def test_no_basque_file_changes_nothing(self):
+        self.join()
+        answer = self.api("roster", {}).get_json()
+        self.assertEqual({tuple(p["leagues"]) for p in answer["players"]}, {("alava",)})
 
     def test_club_without_roster(self):
         self.join(club="Amurrio")

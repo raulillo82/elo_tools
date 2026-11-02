@@ -97,17 +97,29 @@ function buildRoster() {
     box.dataset.id = player.id;
     box.addEventListener("change", () => {
       if (box.checked) {
-        add(player);
+        const {leagues, ...saved} = player; // Teams keep what they always had
+        add(saved);
       } else {
         team = team.filter((other) => other.id !== player.id);
         clearVerdict();
         render();
       }
     });
+    label.dataset.leagues = player.leagues.join(" ");
     label.append(box, element("span", `${player.name} · ${player.rating ?? t("no_elo")}`));
+    if (hasBasqueLeague(roster)) {
+      label.append(element("small", player.leagues.map((league) => t(`tag_${league}`)).join(" · ")));
+    }
     area.append(label);
   });
   showRoster();
+}
+
+function filterRoster() {
+  const choice = document.querySelector('input[name="roster-league"]:checked').value;
+  document.querySelectorAll("#roster label").forEach((label) => {
+    label.hidden = !inLeagues(label.dataset.leagues.split(" "), choice);
+  });
 }
 
 // Rebuilding the list would lose the place in it, so only the marks change
@@ -124,7 +136,11 @@ async function loadRoster() {
     if (roster.length) {
       $("roster-title").textContent = t("club_players", {season: answer.season, n: roster.length});
       $("roster-area").hidden = false;
+      $("roster-filter").hidden = !hasBasqueLeague(roster);
       buildRoster();
+      document.querySelectorAll('input[name="roster-league"]').forEach((radio) => {
+        radio.addEventListener("change", filterRoster);
+      });
     }
   } catch {
     // The list is only a help: everything else works without it
