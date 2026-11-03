@@ -33,6 +33,8 @@ from web.rules import DEFAULT_MARGIN, check_order
 
 DEVICE_COOKIE = "elo_device"
 LANGUAGE_COOKIE = "elo_lang"
+THEME_COOKIE = "elo_theme"
+THEMES = ("light", "dark")
 MAX_PLAYERS = 30
 YEAR = 365 * 24 * 3600
 
@@ -74,6 +76,8 @@ def create_app(config=None):
         g.user = None
         language = request.cookies.get(LANGUAGE_COOKIE)
         g.language = language if language in LANGUAGES else DEFAULT_LANGUAGE
+        theme = request.cookies.get(THEME_COOKIE)
+        g.theme = theme if theme in THEMES else None
         device = request.cookies.get(DEVICE_COOKIE)
         #The device must still exist in every request: removing it closes the session
         user = accounts.user_of_device(device)
@@ -87,7 +91,7 @@ def create_app(config=None):
     @app.context_processor
     def template_values():
         return {"csrf": csrf_token(), "user": g.user, "language": g.language, "languages": LANGUAGES,
-                "t": lambda key, **values: text(g.language, key, **values)}
+                "theme": g.theme, "t": lambda key, **values: text(g.language, key, **values)}
 
     @app.after_request
     def security_headers(response):
@@ -153,22 +157,29 @@ def create_app(config=None):
                 return set_device(redirect(url_for("index")), device_token)
         return render_template("invite.html", invited=user, min_password=MIN_PASSWORD)
 
-    @app.post("/language")
-    def language():
+    def remember(cookie, chosen, allowed):
         '''
-        Remembers the language. It stays on the same page, and only inside the site
+        Saves a preference, if it's a valid one. It stays on the same page, and
+        only inside the site
         '''
-        chosen = request.form.get("lang")
         target = request.form.get("next", "")
         root = request.script_root + "/"
         if not target.startswith(root) or target.startswith("//") or "\\" in target:
             target = url_for("index")
         response = redirect(target)
-        if chosen in LANGUAGES:
-            response.set_cookie(LANGUAGE_COOKIE, chosen, max_age=YEAR, httponly=True,
+        if chosen in allowed:
+            response.set_cookie(cookie, chosen, max_age=YEAR, httponly=True,
                                 secure=app.config["SESSION_COOKIE_SECURE"], samesite="Lax",
                                 path=app.config["SESSION_COOKIE_PATH"])
         return response
+
+    @app.post("/language")
+    def language():
+        return remember(LANGUAGE_COOKIE, request.form.get("lang"), LANGUAGES)
+
+    @app.post("/theme")
+    def theme():
+        return remember(THEME_COOKIE, request.form.get("theme"), THEMES)
 
     @app.get("/privacidad")
     def privacy():

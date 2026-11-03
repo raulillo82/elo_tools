@@ -406,11 +406,13 @@ $("export").addEventListener("click", exportOrders);
 $("excel").addEventListener("click", exportTeam);
 $("excel-all").addEventListener("click", exportAll);
 $("import").addEventListener("change", importOrders);
-// Changing the language reloads the page: keep the team being built. This
-// copy only lasts until the page is back, and it's not the "save" option
-document.querySelector(".languages").addEventListener("submit", () => {
-  sessionStorage.setItem(DRAFT_KEY, JSON.stringify({name: $("team-name").value, team}));
-});
+// Changing the language or the theme reloads the page: keep the team being
+// built. This copy only lasts until the page is back, and it's not the "save" option
+for (const form of document.querySelectorAll(".languages, .themes")) {
+  form.addEventListener("submit", () => {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify({name: $("team-name").value, team}));
+  });
+}
 const draft = sessionStorage.getItem(DRAFT_KEY);
 sessionStorage.removeItem(DRAFT_KEY);
 if (draft) {

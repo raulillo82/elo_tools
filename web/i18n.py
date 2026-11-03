@@ -18,6 +18,9 @@ TEXTS = {
     "logout": ("Irten", "Salir"),
     "privacy": ("Pribatutasuna", "Privacidad"),
     "language": ("Hizkuntza", "Idioma"),
+    "theme": ("Itxura", "Apariencia"),
+    "theme_light": ("Modu argia", "Modo claro"),
+    "theme_dark": ("Modu iluna", "Modo oscuro"),
     #Login and invitations
     "hello": ("Kaixo, {name}", "Hola, {name}"),
     "password": ("Pasahitza", "Contraseña"),
@@ -138,9 +141,10 @@ TEXTS = {
                        "conserva. Si activas el guardado, se quedan solo en este dispositivo."),
     "privacy_accounts": ("<strong>Kontuak:</strong> izena, kluba eta zifratutako pasahitza.",
                          "<strong>Cuentas:</strong> nombre de pila, club y contraseña cifrada."),
-    "privacy_language": ("<strong>Hizkuntza:</strong> cookie batek gogoratzen du zein hizkuntza "
-                         "aukeratu duzun.",
-                         "<strong>Idioma:</strong> una cookie recuerda el idioma que has elegido."),
+    "privacy_language": ("<strong>Hizkuntza eta itxura:</strong> cookieek gogoratzen dute zein "
+                         "hizkuntza eta zein modu (argia edo iluna) aukeratu dituzun.",
+                         "<strong>Idioma y apariencia:</strong> unas cookies recuerdan el idioma "
+                         "y el modo, claro u oscuro, que has elegido."),
     "privacy_contact": ("Datuak zuzendu edo kentzeko, hitz egin sarbidea eman dizun pertsonarekin.",
                         "Para corregir o retirar datos, habla con la persona que te dio acceso."),
 }

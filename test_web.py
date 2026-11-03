@@ -527,6 +527,37 @@ class WebTest(unittest.TestCase):
             location = self.set_language("es", target).headers["Location"]
             self.assertEqual(location, "/", target)
 
+    def set_theme(self, code, next_page="/login"):
+        return self.client.post("/theme", data={"theme": code, "next": next_page,
+                                                "csrf": self.csrf()})
+
+    def test_theme_follows_the_device_until_chosen(self):
+        text = self.client.get("/login").get_data(as_text=True)
+        self.assertIn('<html lang="eu">', text)
+        self.assertNotIn('aria-pressed="true"', re.search(r'class="themes".*?</form>', text, re.S).group())
+
+    def test_chosen_theme_stays(self):
+        response = self.set_theme("dark")
+        self.assertEqual(response.headers["Location"], "/login")
+        for page in ("/login", "/privacidad"):
+            self.assertIn('data-theme="dark"', self.client.get(page).get_data(as_text=True))
+        self.set_theme("light")
+        self.assertIn('data-theme="light"', self.client.get("/login").get_data(as_text=True))
+
+    def test_unknown_theme_is_ignored(self):
+        self.set_theme('"><script>')
+        self.assertNotIn("data-theme", self.client.get("/login").get_data(as_text=True))
+
+    def test_theme_needs_csrf_and_cant_redirect_to_other_sites(self):
+        self.assertEqual(self.client.post("/theme", data={"theme": "dark"}).status_code, 403)
+        self.assertEqual(self.set_theme("dark", "https://example.com/").headers["Location"], "/")
+
+    def test_both_ways_to_night_mode_use_the_same_colours(self):
+        style = open("web/static/style.css", encoding="utf-8").read()
+        chosen = re.search(r':root\[data-theme="dark"\] \{ (.*?) \}', style).group(1)
+        device = re.search(r':root:not\(\[data-theme="light"\]\) \{ (.*?) \}', style).group(1)
+        self.assertEqual(chosen, device)
+
     def test_language_of_the_results(self):
         self.join()
         self.assertEqual(self.api("check", {"entries": [1]}).get_json()["list"]["text"],
