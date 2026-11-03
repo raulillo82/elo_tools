@@ -122,6 +122,8 @@ que sigue siendo por correo a la federación.
   guardados en ese dispositivo.
 - **Idiomas:** euskera, que es el idioma por defecto, y castellano. La web recuerda
   el que eligió cada persona. Los textos están en `web/i18n.py`.
+- **Modo nocturno:** sigue el ajuste del dispositivo hasta que la persona elige
+  claro u oscuro en la cabecera. Esa elección se recuerda igual que el idioma.
 - **Accesos:** solo por invitación de un uso. Cada persona tiene hasta dos
   dispositivos y un club, y cada club una persona.
 
