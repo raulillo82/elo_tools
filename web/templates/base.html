@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  {% if is_staging %}<p class="staging">{{ t('staging_banner') }}</p>{% endif %}
   <header>
     <a class="brand" href="{{ url_for('index') }}">{{ t('brand') }}</a>
     <form class="languages" method="post" action="{{ url_for('language') }}" aria-label="{{ t('language') }}">
@@ -33,6 +34,7 @@
     <nav>
       <span>{{ user['name'] }} · {{ user['club'] }}</span>
       {% if user['is_admin'] %}<a href="{{ url_for('admin') }}">{{ t('access') }}</a>{% endif %}
+      {% if staging_link %}<a href="{{ url_for('staging_entry') }}">{{ t('staging') }}</a>{% endif %}
       <form method="post" action="{{ url_for('logout') }}">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button class="link">{{ t('logout') }}</button>

@@ -1,0 +1,25 @@
+[Unit]
+Description=Orden de fuerzas, STAGING (podman)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/sh -c 'i=0; while [ "$$(date +%%s)" -lt 1790000000 ] && [ $$i -lt 120 ]; do i=$$((i+1)); sleep 1; done'
+ExecStartPre=-/usr/bin/podman rm -f elo-staging
+ExecStart=/usr/bin/podman run --name elo-staging --rm \
+    -p 127.0.0.1:5004:5003 \
+    --userns keep-id:uid=1000,gid=1000 \
+    --cap-drop all --security-opt no-new-privileges \
+    --read-only --tmpfs /tmp \
+    -e HOME=/tmp \
+    -e ELO_STAGING=1 \
+    -e ELO_STAGING_KEY_FILE=/secrets/staging.key \
+    -v %h/elo-web-staging/data:/data:Z \
+    -v %h/elo-web-staging/secrets:/secrets:ro,Z \
+    localhost/elo-web-staging:latest
+ExecStop=/usr/bin/podman stop -t 10 elo-staging
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

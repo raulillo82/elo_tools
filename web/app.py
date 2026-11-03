@@ -5,7 +5,8 @@ answered and forgotten. Saved orders only live in the browser of each user.
 import hmac
 import os
 import secrets
-from datetime import timedelta
+import time
+from datetime import datetime, timedelta
 from functools import wraps
 from pathlib import Path
 
@@ -30,12 +31,14 @@ from web.i18n import DEFAULT_LANGUAGE, LANGUAGES, browser_texts, text
 from web.lists import PlayerList
 from web.rosters import load_basque_rosters, load_rosters
 from web.rules import DEFAULT_MARGIN, check_order
+from web.staging import entry_token, read_entry
 
 DEVICE_COOKIE = "elo_device"
 LANGUAGE_COOKIE = "elo_lang"
 THEME_COOKIE = "elo_theme"
 THEMES = ("light", "dark")
 MAX_PLAYERS = 30
+STAGING_DAYS = (1, 7, 30)
 YEAR = 365 * 24 * 3600
 
 
@@ -59,7 +62,10 @@ def create_app(config=None):
         SESSION_COOKIE_SAMESITE="Lax",
         PERMANENT_SESSION_LIFETIME=timedelta(days=30),
         MAX_CONTENT_LENGTH=16 * 1024,
-        MARGIN=int(os.environ.get("ELO_MARGIN", DEFAULT_MARGIN)))
+        MARGIN=int(os.environ.get("ELO_MARGIN", DEFAULT_MARGIN)),
+        STAGING="ELO_STAGING" in os.environ,
+        STAGING_URL=os.environ.get("ELO_STAGING_URL"),
+        STAGING_KEY=read_key(os.environ.get("ELO_STAGING_KEY_FILE")))
     app.config.update(config or {})
     if "ACCOUNTS" not in app.config:
         app.config["ACCOUNTS"] = Accounts(Path(folder) / "accounts.db")
@@ -70,6 +76,16 @@ def create_app(config=None):
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_prefix=1)
     limiter.init_app(app)
     accounts, players = app.config["ACCOUNTS"], app.config["PLAYERS"]
+    is_staging = app.config["STAGING"]
+    #Without its key and address, production just doesn't offer staging
+    offers_staging = not is_staging and bool(app.config["STAGING_KEY"] and app.config["STAGING_URL"])
+
+    def can_enter_staging(user):
+        return (user["staging_until"] or 0) > time.time()
+
+    @app.template_filter("date")
+    def date(timestamp):
+        return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
 
     @app.before_request
     def load_user():
@@ -82,7 +98,8 @@ def create_app(config=None):
         #The device must still exist in every request: removing it closes the session
         user = accounts.user_of_device(device)
         if user and session.get("user_id") == user["id"]:
-            g.user = user
+            if not is_staging or can_enter_staging(user):
+                g.user = user
         if request.method == "POST":
             sent = request.headers.get("X-CSRF") or request.form.get("csrf", "")
             if not hmac.compare_digest(sent.encode(), session.get("csrf", "-").encode()):
@@ -91,7 +108,9 @@ def create_app(config=None):
     @app.context_processor
     def template_values():
         return {"csrf": csrf_token(), "user": g.user, "language": g.language, "languages": LANGUAGES,
-                "theme": g.theme, "t": lambda key, **values: text(g.language, key, **values)}
+                "theme": g.theme, "t": lambda key, **values: text(g.language, key, **values),
+                "is_staging": is_staging,
+                "staging_link": offers_staging and g.user is not None and can_enter_staging(g.user)}
 
     @app.after_request
     def security_headers(response):
@@ -181,6 +200,35 @@ def create_app(config=None):
     def theme():
         return remember(THEME_COOKIE, request.form.get("theme"), THEMES)
 
+    @app.get("/staging")
+    @login_required
+    def staging_entry():
+        '''
+        A link and not a form: the browser refuses to follow a form to another site
+        '''
+        if not offers_staging or not can_enter_staging(g.user):
+            abort(404)
+        return redirect(f"{app.config['STAGING_URL']}/enter/{entry_token(app.config['STAGING_KEY'], g.user)}")
+
+    @app.get("/enter/<token>")
+    @limiter.limit("20 per minute")
+    def enter(token):
+        '''
+        Only in staging: opens the session from a permission of production
+        '''
+        if not is_staging or not app.config["STAGING_KEY"]:
+            abort(404)
+        try:
+            entry = read_entry(app.config["STAGING_KEY"], token)
+            if entry is None:
+                raise AccountError("staging_bad")
+            user, device_token = accounts.enter_staging(entry)
+        except AccountError as error:
+            return render_template("message.html", title=text(g.language, "staging"),
+                                   message=text(g.language, error.key)), 403
+        start_session(user)
+        return set_device(redirect(url_for("index")), device_token)
+
     @app.get("/privacidad")
     def privacy():
         return render_template("privacy.html")
@@ -240,7 +288,16 @@ def create_app(config=None):
     @admin_required
     def admin():
         return render_template("admin.html", users=accounts.list_users(),
-                               clubs=accounts.free_clubs(), link=session.pop("invite_link", None))
+                               clubs=[] if is_staging else accounts.free_clubs(),
+                               link=session.pop("invite_link", None), now=time.time(),
+                               offers_staging=offers_staging, staging_days=STAGING_DAYS)
+
+    @app.post("/admin/staging/<int:user_id>")
+    @admin_required
+    def admin_staging(user_id):
+        days = request.form.get("days", type=int)
+        accounts.set_staging(user_id, time.time() + days * 24 * 3600 if days in STAGING_DAYS else None)
+        return redirect(url_for("admin"))
 
     @app.post("/admin/invite")
     @admin_required
@@ -274,6 +331,12 @@ def create_app(config=None):
         return redirect(url_for("admin"))
 
     return app
+
+
+def read_key(path):
+    if path and Path(path).is_file():
+        return Path(path).read_text(encoding="utf-8").strip() or None
+    return None
 
 
 def csrf_token():
