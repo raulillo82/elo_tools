@@ -639,6 +639,11 @@ class WebTest(unittest.TestCase):
         for _ in range(2):
             users = Accounts(path).list_users()
         self.assertIsNone(users[0]["staging_until"])
+    def test_the_browser_gets_the_margin_of_the_server(self):
+        self.join()
+        text = self.client.get("/").get_data(as_text=True)
+        self.assertIn('data-margin="50"', text)
+        self.assertIn(i18n.text("eu", "range_hint", margin=50), text)
 
     def set_theme(self, code, next_page="/login"):
         return self.client.post("/theme", data={"theme": code, "next": next_page,

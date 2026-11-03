@@ -76,6 +76,10 @@ TEXTS = {
     "last_season": ("Aurreko denboraldiko jokalariak", "Jugadores de la temporada pasada"),
     "roster_hint": ("Markatu talde honetan nahi dituzunak. Zure klubekoak bakarrik ikusten dituzu.",
                     "Marca los que quieras en este equipo. Solo ves a los de tu club."),
+    "range_hint": ("↕ {margin} puntuko arauaren arabera jokalari bakoitza zein taulatan egon "
+                   "daitekeen erakusten du, besteak lekuan utzita.",
+                   "↕ indica entre qué tableros puede ir cada jugador según la regla de los "
+                   "{margin} puntos, dejando a los demás en su sitio."),
     "add_by_name": ("Gehitu jokalaria izenez", "Añadir jugador por nombre"),
     "name_placeholder": ("Abizena eta izena", "Apellido y nombre"),
     "search_hint": ("Idatzi gutxienez bi hitz oso, adibidez abizen bat eta izena.",
@@ -167,6 +171,8 @@ BROWSER_TEXTS = {
     "tag_honor": ("Ohorezko Maila", "División de Honor"),
     "tag_primera": ("Lehen Maila", "Primera"),
     "inactive": ("ez-aktiboa", "inactivo"),
+    "range": ("{first}. taulatik {last}. taulara", "Del tablero {first} al {last}"),
+    "breaks_rule": ("arauaren aurka doa", "incumple la regla"),
     "move_up": ("Igo: {name}", "Subir a {name}"),
     "move_down": ("Jaitsi: {name}", "Bajar a {name}"),
     "remove": ("Kendu: {name}", "Quitar a {name}"),
