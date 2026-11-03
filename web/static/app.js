@@ -82,8 +82,10 @@ function arrow(text, title, index, step, range) {
 }
 
 // Drag a row by its grip to any board. Pointer events work with a mouse and a
-// finger alike. The row shows in yellow while that place breaks the rule, but
-// it can be dropped there, like with the arrows. Keyboards use the arrows
+// finger alike. A faded copy of the row follows the pointer, and the row
+// itself waits as a gap where it would land. The copy shows in yellow while
+// that place breaks the rule, but it can be dropped there, like with the
+// arrows. Keyboards use the arrows
 function startDrag(event, from) {
   if (event.button !== 0) return;
   event.preventDefault();
@@ -103,11 +105,22 @@ function startDrag(event, from) {
     status.classList.toggle("warning", breaks);
     status.textContent = breaks ? t("drag_breaks", {margin: MARGIN}) : t("drag_fine");
   };
+  // Positions set from here are allowed by the CSP, unlike style attributes
+  const box = dragged.getBoundingClientRect();
+  const grab = event.clientY - box.top;
+  const ghost = element("ol", undefined, "ghost");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.append(dragged.cloneNode(true));
+  ghost.style.left = `${box.left}px`;
+  ghost.style.width = `${box.width}px`;
+  ghost.style.top = `${box.top}px`;
+  document.body.append(ghost);
   dragged.classList.add("dragging");
   tell(false);
   // On the window: moving the row in the page drops a capture on the grip
   addEventListener("pointermove", ({clientY, pointerId: id}) => {
     if (id !== pointerId) return;
+    ghost.style.top = `${clientY - grab}px`;
     if (clientY < 40) scrollBy(0, -12);
     else if (clientY > innerHeight - 40) scrollBy(0, 12);
     let place = others.findIndex((row) => {
@@ -120,12 +133,14 @@ function startDrag(event, from) {
     list.insertBefore(dragged, others[place] ?? null);
     [...list.children].forEach((row, index) => { row.querySelector(".board").textContent = index + 1; });
     const breaks = moveBreaks(ratings, from, to, MARGIN);
-    dragged.classList.toggle("breaks", breaks);
+    ghost.firstChild.classList.toggle("breaks", breaks);
+    ghost.firstChild.querySelector(".board").textContent = to + 1;
     tell(breaks);
   }, {signal: done.signal});
   const drop = ({type, pointerId: id}) => {
     if (id !== pointerId) return;
     done.abort();
+    ghost.remove();
     if (type === "pointerup" && to !== from) {
       team = moveTo(team, from, to);
       clearVerdict();
@@ -133,7 +148,7 @@ function startDrag(event, from) {
     } else if (to !== from) {
       render();
     } else {
-      dragged.classList.remove("dragging", "breaks");
+      dragged.classList.remove("dragging");
       [status.textContent, status.hidden] = before;
       status.classList.toggle("warning", before[2]);
     }
