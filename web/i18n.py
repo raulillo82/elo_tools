@@ -171,6 +171,11 @@ BROWSER_TEXTS = {
     "tag_honor": ("Ohorezko Maila", "División de Honor"),
     "tag_primera": ("Lehen Maila", "Primera"),
     "inactive": ("ez-aktiboa", "inactivo"),
+    "live_right": ("✓ Ordena ongi dago ikusita. Sakatu «Egiaztatu» zerrendarekin baieztatzeko.",
+                   "✓ El orden parece correcto. Pulsa «Comprobar» para confirmarlo con la lista."),
+    "live_wrong": ("⚠ Ordena berrikusi behar da (arazoak: {n}). «Ordenatu ELOaren arabera» "
+                   "botoiak konpontzen du.",
+                   "⚠ Orden por revisar (problemas: {n}). «Ordenar por ELO» lo arregla."),
     "range": ("{first}. taulatik {last}. taulara", "Del tablero {first} al {last}"),
     "breaks_rule": ("arauaren aurka doa", "incumple la regla"),
     "move_up": ("Igo: {name}", "Subir a {name}"),
