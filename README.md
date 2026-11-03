@@ -126,6 +126,9 @@ que sigue siendo por correo a la federación.
   tableros puede ir dejando a los demás en su sitio, y las flechas que romperían la
   regla salen atenuadas pero siguen funcionando. Es solo una ayuda: quien decide es
   `Comprobar`, en el servidor.
+- **Aviso en vivo:** mientras se monta el equipo, una línea discreta dice si el orden
+  parece correcto y una marca señala las filas implicadas. Usa los ELO del navegador,
+  que se actualizan al abrir un equipo guardado. `Comprobar` sigue siendo quien decide.
 - **Modo nocturno:** sigue el ajuste del dispositivo hasta que la persona elige
   claro u oscuro en la cabecera. Esa elección se recuerda igual que el idioma.
 - **Accesos:** solo por invitación de un uso. Cada persona tiene hasta dos

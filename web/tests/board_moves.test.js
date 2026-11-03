@@ -2,7 +2,7 @@
 "use strict";
 const assert = require("node:assert");
 const {test} = require("node:test");
-const {orderIsRight, boardRange} = require("../static/board_moves.js");
+const {orderIsRight, orderProblems, boardRange} = require("../static/board_moves.js");
 
 const ranges = (ratings, margin = 50) =>
   ratings.map((_, index) => boardRange(ratings, index, margin)).map(({first, last}) => [first, last]);
@@ -41,6 +41,22 @@ const ORDERS = [
 for (const [ratings, right] of ORDERS) {
   test(`order ${ratings}`, () => assert.equal(orderIsRight(ratings, 50), right));
 }
+
+test("problems are counted by pairs, with their boards", () => {
+  const {count, boards} = orderProblems([1500, 1600, 1700], 50);
+  assert.equal(count, 3);
+  assert.deepEqual([...boards], [1, 2, 3]);
+});
+
+test("only the boards involved are marked", () => {
+  const {count, boards} = orderProblems([1900, 1500, 1800, null, 1400], 50);
+  assert.equal(count, 2);
+  assert.deepEqual([...boards].sort(), [2, 3, 4, 5]);
+});
+
+test("a right order has no problems", () => {
+  assert.deepEqual(orderProblems([1900, 1880, null], 50), {count: 0, boards: new Set()});
+});
 
 test("moving inside a range always gives a right order", () => {
   const ratings = [1900, 1870, 1840, 1835, 1700, null, null];

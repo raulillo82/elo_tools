@@ -81,16 +81,27 @@ function arrow(text, title, index, step, range) {
   return node;
 }
 
-function render(wrong = new Set()) {
+// The quiet help while building a team. The result of Comprobar takes its place
+function showLiveStatus(problems, checked) {
+  const status = $("live-status");
+  status.hidden = checked || team.length < 2;
+  status.classList.toggle("warning", problems.count > 0);
+  status.textContent = problems.count ? t("live_wrong", {n: problems.count}) : t("live_right");
+}
+
+// wrong has the boards that the server rejected, once it has checked them
+function render(wrong = null) {
   const list = $("players");
   list.replaceChildren();
   const ratings = team.map((player) => player.rating ?? null);
   const right = orderIsRight(ratings, MARGIN); // Otherwise the ranges mean nothing
+  const problems = orderProblems(ratings, MARGIN);
   let anyRange = false;
   team.forEach((player, index) => {
     const range = right ? boardRange(ratings, index, MARGIN) : null;
     const row = element("li");
-    if (wrong.has(index + 1)) row.classList.add("wrong");
+    if (wrong?.has(index + 1)) row.classList.add("wrong");
+    if (!wrong && problems.boards.has(index + 1)) row.classList.add("doubtful");
     row.append(element("span", index + 1, "board"));
     const who = element("div", player.name, "who");
     const details = element("small", player.rating ?? t("no_elo"));
@@ -115,6 +126,7 @@ function render(wrong = new Set()) {
   });
   $("empty").hidden = team.length > 0;
   $("range-hint").hidden = !anyRange;
+  showLiveStatus(problems, wrong !== null);
   showRoster();
 }
 
@@ -320,6 +332,7 @@ function showSaved() {
       openedTeam = name;
       clearVerdict();
       render();
+      refreshRatings();
     }), button(t("delete_label"), t("delete_team", {name}), () => {
       const orders = savedOrders();
       delete orders[name];
@@ -328,6 +341,20 @@ function showSaved() {
     row.append(tools);
     list.append(row);
   });
+}
+
+// A saved team can have old ELOs: without this, the quiet help would judge it
+// with them. If it fails nothing changes, and Comprobar still gives the error
+async function refreshRatings() {
+  const players = team.filter((player) => player.id);
+  if (!players.length) return;
+  try {
+    const answer = await post("check", {entries: players.map((player) => player.id)});
+    players.forEach((player, index) => { player.rating = answer.ratings[index]; });
+    if (!$("verdict").hasChildNodes()) render();
+  } catch {
+    // It's only a help
+  }
 }
 
 function setSaving() {
