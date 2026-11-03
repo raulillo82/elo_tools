@@ -81,6 +81,82 @@ function arrow(text, title, index, step, range) {
   return node;
 }
 
+// Drag a row by its grip to any board. Pointer events work with a mouse and a
+// finger alike. A faded copy of the row follows the pointer, and the row
+// itself waits as a gap where it would land. The copy shows in yellow while
+// that place breaks the rule, but it can be dropped there, like with the
+// arrows. Keyboards use the arrows
+function startDrag(event, from) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  const list = $("players");
+  const rows = [...list.children];
+  const dragged = rows[from];
+  const others = rows.filter((row) => row !== dragged);
+  const ratings = team.map((player) => player.rating ?? null);
+  const done = new AbortController();
+  let to = from;
+  const {pointerId} = event;
+  // The finger hides the row on a phone, so the line under the list says it too
+  const status = $("live-status");
+  const before = [status.textContent, status.hidden, status.classList.contains("warning")];
+  const tell = (breaks) => {
+    status.hidden = false;
+    status.classList.toggle("warning", breaks);
+    status.textContent = breaks ? t("drag_breaks", {margin: MARGIN}) : t("drag_fine");
+  };
+  // Positions set from here are allowed by the CSP, unlike style attributes
+  const box = dragged.getBoundingClientRect();
+  const grab = event.clientY - box.top;
+  const ghost = element("ol", undefined, "ghost");
+  ghost.setAttribute("aria-hidden", "true");
+  ghost.append(dragged.cloneNode(true));
+  ghost.style.left = `${box.left}px`;
+  ghost.style.width = `${box.width}px`;
+  ghost.style.top = `${box.top}px`;
+  document.body.append(ghost);
+  dragged.classList.add("dragging");
+  tell(false);
+  // On the window: moving the row in the page drops a capture on the grip
+  addEventListener("pointermove", ({clientY, pointerId: id}) => {
+    if (id !== pointerId) return;
+    ghost.style.top = `${clientY - grab}px`;
+    if (clientY < 40) scrollBy(0, -12);
+    else if (clientY > innerHeight - 40) scrollBy(0, 12);
+    let place = others.findIndex((row) => {
+      const box = row.getBoundingClientRect();
+      return clientY < box.top + box.height / 2;
+    });
+    if (place === -1) place = others.length;
+    if (place === to) return;
+    to = place;
+    list.insertBefore(dragged, others[place] ?? null);
+    [...list.children].forEach((row, index) => { row.querySelector(".board").textContent = index + 1; });
+    const breaks = moveBreaks(ratings, from, to, MARGIN);
+    ghost.firstChild.classList.toggle("breaks", breaks);
+    ghost.firstChild.querySelector(".board").textContent = to + 1;
+    tell(breaks);
+  }, {signal: done.signal});
+  const drop = ({type, pointerId: id}) => {
+    if (id !== pointerId) return;
+    done.abort();
+    ghost.remove();
+    if (type === "pointerup" && to !== from) {
+      team = moveTo(team, from, to);
+      clearVerdict();
+      render();
+    } else if (to !== from) {
+      render();
+    } else {
+      dragged.classList.remove("dragging");
+      [status.textContent, status.hidden] = before;
+      status.classList.toggle("warning", before[2]);
+    }
+  };
+  addEventListener("pointerup", drop, {signal: done.signal});
+  addEventListener("pointercancel", drop, {signal: done.signal});
+}
+
 // The quiet help while building a team. The result of Comprobar takes its place
 function showLiveStatus(problems, checked) {
   const status = $("live-status");
@@ -102,7 +178,11 @@ function render(wrong = null) {
     const row = element("li");
     if (wrong?.has(index + 1)) row.classList.add("wrong");
     if (!wrong && problems.boards.has(index + 1)) row.classList.add("doubtful");
-    row.append(element("span", index + 1, "board"));
+    const grip = element("span", "⠿", "grip");
+    grip.title = t("drag", {name: player.name});
+    grip.setAttribute("aria-hidden", "true");
+    grip.addEventListener("pointerdown", (event) => startDrag(event, index));
+    row.append(grip, element("span", index + 1, "board"));
     const who = element("div", player.name, "who");
     const details = element("small", player.rating ?? t("no_elo"));
     if (range && range.first < range.last) {

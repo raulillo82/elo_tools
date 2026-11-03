@@ -2,7 +2,7 @@
 "use strict";
 const assert = require("node:assert");
 const {test} = require("node:test");
-const {orderIsRight, orderProblems, boardRange} = require("../static/board_moves.js");
+const {orderIsRight, orderProblems, boardRange, moveTo, moveBreaks} = require("../static/board_moves.js");
 
 const ranges = (ratings, margin = 50) =>
   ratings.map((_, index) => boardRange(ratings, index, margin)).map(({first, last}) => [first, last]);
@@ -68,4 +68,38 @@ test("moving inside a range always gives a right order", () => {
       assert.equal(orderIsRight(others, 50), board >= first && board <= last);
     }
   });
+});
+
+test("moving puts the player on the chosen board and keeps the rest in order", () => {
+  const list = ["a", "b", "c", "d"];
+  assert.deepEqual(moveTo(list, 0, 2), ["b", "c", "a", "d"]);
+  assert.deepEqual(moveTo(list, 3, 0), ["d", "a", "b", "c"]);
+  assert.deepEqual(moveTo(list, 1, 1), list);
+  assert.deepEqual(list, ["a", "b", "c", "d"]);
+});
+
+test("a move breaks the rule exactly when it leaves the player's range", () => {
+  const ratings = [1900, 1870, 1840, 1700, 1690];
+  ratings.forEach((_, from) => {
+    const {first, last} = boardRange(ratings, from, 50);
+    ratings.forEach((_, to) => {
+      const inside = to + 1 >= first && to + 1 <= last;
+      assert.equal(moveBreaks(ratings, from, to, 50), !inside, `${from} to ${to}`);
+      assert.equal(orderIsRight(moveTo(ratings, from, to), 50), inside, `${from} to ${to}`);
+    });
+  });
+});
+
+test("a move is judged on its own even in a wrong order", () => {
+  const ratings = [1500, 1900, 1880, 1700];
+  assert.equal(moveBreaks(ratings, 1, 0, 50), false);
+  assert.equal(moveBreaks(ratings, 2, 1, 50), false);
+  assert.equal(moveBreaks(ratings, 0, 3, 50), false);
+  assert.equal(moveBreaks(ratings, 3, 0, 50), true);
+});
+
+test("players without ELO stay below rated ones", () => {
+  assert.equal(moveBreaks([1500, null], 1, 0, 50), true);
+  assert.equal(moveBreaks([null, 1500], 0, 1, 50), false);
+  assert.equal(moveBreaks([null, null, 1500], 0, 1, 50), false);
 });
