@@ -138,6 +138,7 @@ def create_app(config=None):
     @login_required
     def index():
         return render_template("tool.html", list_label=players.label(g.language),
+                               margin=app.config["MARGIN"],
                                browser_texts=browser_texts(g.language))
 
     @app.route("/login", methods=["GET", "POST"])

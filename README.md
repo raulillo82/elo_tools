@@ -122,6 +122,10 @@ que sigue siendo por correo a la federación.
   guardados en ese dispositivo.
 - **Idiomas:** euskera, que es el idioma por defecto, y castellano. La web recuerda
   el que eligió cada persona. Los textos están en `web/i18n.py`.
+- **Rango de tableros:** si el orden es correcto, cada jugador muestra entre qué
+  tableros puede ir dejando a los demás en su sitio, y las flechas que romperían la
+  regla salen atenuadas pero siguen funcionando. Es solo una ayuda: quien decide es
+  `Comprobar`, en el servidor.
 - **Modo nocturno:** sigue el ajuste del dispositivo hasta que la persona elige
   claro u oscuro en la cabecera. Esa elección se recuerda igual que el idioma.
 - **Accesos:** solo por invitación de un uso. Cada persona tiene hasta dos

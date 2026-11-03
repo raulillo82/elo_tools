@@ -10,6 +10,7 @@ const SAVE_KEY = `elo-orders-${userId}`;
 const ENABLED_KEY = `elo-save-${userId}`;
 const DRAFT_KEY = "elo-draft";
 const MAX_PLAYERS = 30;
+const MARGIN = Number($("list-label").dataset.margin);
 const TEXTS = JSON.parse($("texts").textContent);
 let team = []; // {id, name, rating, inactive}. id is null for players typed by hand
 let searchTimer = null;
@@ -61,22 +62,51 @@ function move(index, step) {
   render();
 }
 
+function rangeTag({first, last}) {
+  const tag = element("span", `↕ ${first}–${last}`);
+  tag.setAttribute("role", "img");
+  tag.title = t("range", {first, last});
+  tag.setAttribute("aria-label", tag.title);
+  return tag;
+}
+
+// The arrow stays usable when it breaks the rule, or a wrong order couldn't be
+// fixed step by step: it only looks faded
+function arrow(text, title, index, step, range) {
+  const board = index + 1 + step;
+  const edge = board < 1 || board > team.length;
+  const breaks = range !== null && !edge && (board < range.first || board > range.last);
+  const node = button(text, breaks ? `${title}: ${t("breaks_rule")}` : title, () => move(index, step));
+  if (edge || breaks) node.classList.add("faded");
+  return node;
+}
+
 function render(wrong = new Set()) {
   const list = $("players");
   list.replaceChildren();
+  const ratings = team.map((player) => player.rating ?? null);
+  const right = orderIsRight(ratings, MARGIN); // Otherwise the ranges mean nothing
+  let anyRange = false;
   team.forEach((player, index) => {
+    const range = right ? boardRange(ratings, index, MARGIN) : null;
     const row = element("li");
     if (wrong.has(index + 1)) row.classList.add("wrong");
     row.append(element("span", index + 1, "board"));
     const who = element("div", player.name, "who");
-    const parts = [player.rating ?? t("no_elo")];
+    const details = element("small", player.rating ?? t("no_elo"));
+    if (range && range.first < range.last) {
+      anyRange = true;
+      details.append(" · ", rangeTag(range));
+    }
+    const parts = [];
     if (player.id) parts.push(`ID ${player.id}`);
     if (player.inactive) parts.push(t("inactive"));
-    who.append(element("small", parts.join(" · ")));
+    details.append(parts.map((part) => ` · ${part}`).join(""));
+    who.append(details);
     row.append(who);
     const tools = element("div", undefined, "tools");
-    tools.append(button("↑", t("move_up", {name: player.name}), () => move(index, -1)),
-                 button("↓", t("move_down", {name: player.name}), () => move(index, 1)),
+    tools.append(arrow("↑", t("move_up", {name: player.name}), index, -1, range),
+                 arrow("↓", t("move_down", {name: player.name}), index, 1, range),
                  button("✕", t("remove", {name: player.name}), () => {
                    team.splice(index, 1); clearVerdict(); render();
                  }));
@@ -84,6 +114,7 @@ function render(wrong = new Set()) {
     list.append(row);
   });
   $("empty").hidden = team.length > 0;
+  $("range-hint").hidden = !anyRange;
   showRoster();
 }
 

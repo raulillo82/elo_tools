@@ -32,6 +32,7 @@ button.link { min-height: 0; padding: 0; border: 0; background: none; color: var
 .board { width: 1.8rem; text-align: right; font-weight: 700; flex: none; }
 .who { flex: 1; min-width: 0; overflow-wrap: anywhere; } .who small { display: block; color: var(--muted); }
 .tools { display: flex; gap: .25rem; flex: none; } .tools button { min-width: 40px; min-height: 40px; padding: 0; justify-content: center; }
+.tools button.faded { opacity: .35; }
 .result { display: block; width: 100%; text-align: left; margin-bottom: .3rem; }
 #verdict { margin-top: .8rem; } #verdict p { margin: 0 0 .4rem; padding: .6rem .8rem; border-radius: 6px; }
 #verdict ul { margin: 0; padding-left: 1.2rem; font-size: .92rem; }
