@@ -31,6 +31,10 @@ button.link { min-height: 0; padding: 0; border: 0; background: none; color: var
 #players li { display: flex; gap: .5rem; align-items: center; padding: .4rem 0; border-bottom: 1px solid var(--line); }
 #players li.wrong { background: var(--bad-soft); }
 #players li.doubtful { box-shadow: inset 3px 0 0 var(--warn); padding-left: 3px; }
+#players li.dragging { background: var(--notice); }
+#players li.dragging.breaks { box-shadow: inset 0 0 0 2px var(--warn); }
+.grip { flex: none; align-self: stretch; display: flex; align-items: center; padding: 0 .35rem; font-size: 1.2rem; color: var(--muted); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.dragging .grip { cursor: grabbing; }
 #live-status.warning { color: var(--warn); font-weight: 600; }
 .board { width: 1.8rem; text-align: right; font-weight: 700; flex: none; }
 .who { flex: 1; min-width: 0; overflow-wrap: anywhere; } .who small { display: block; color: var(--muted); }

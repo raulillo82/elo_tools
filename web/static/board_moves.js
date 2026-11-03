@@ -38,4 +38,21 @@ function boardRange(ratings, index, margin) {
   return {first: first + 1, last: last + 1};
 }
 
-if (typeof module !== "undefined") module.exports = {orderIsRight, orderProblems, boardRange};
+// The list with the item at from taken out and put back at to, both from 0
+function moveTo(list, from, to) {
+  const result = list.slice();
+  result.splice(to, 0, ...result.splice(from, 1));
+  return result;
+}
+
+// Whether that move breaks the rule by itself: it only looks at the players the
+// moved one jumps over, so it means something even while the order is wrong
+function moveBreaks(ratings, from, to, margin) {
+  const rating = ratings[from];
+  if (to < from) return ratings.slice(to, from).some((upper) => !canGoAbove(rating, upper, margin));
+  return ratings.slice(from + 1, to + 1).some((lower) => !canGoAbove(lower, rating, margin));
+}
+
+if (typeof module !== "undefined") {
+  module.exports = {orderIsRight, orderProblems, boardRange, moveTo, moveBreaks};
+}
