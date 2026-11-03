@@ -580,6 +580,14 @@ class WebTest(unittest.TestCase):
         self.assertEqual(person["club"], "Laudio")
         self.assertIsNone(person["password_hash"])
 
+    def test_staging_links_back_to_production(self):
+        staging = self.staging_setup()
+        self.assertNotIn("<a href", re.search(r'<p class="staging">.*?</p>',
+                                              staging.get("/login").get_data(as_text=True)).group())
+        staging.application.config["PRODUCTION_URL"] = "https://real.test/elo/"
+        self.assertIn('href="https://real.test/elo/"', staging.get("/login").get_data(as_text=True))
+        self.assertNotIn('class="staging"', self.client.get("/login").get_data(as_text=True))
+
     def test_entry_works_once(self):
         staging = self.staging_setup()
         self.accounts.set_staging(self.user_id, time.time() + 3600)

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  {% if is_staging %}<p class="staging">{{ t('staging_banner') }}</p>{% endif %}
+  {% if is_staging %}<p class="staging">{{ t('staging_banner') }}{% if production_url %} <a href="{{ production_url }}">{{ t('staging_back') }}</a>{% endif %}</p>{% endif %}
   <header>
     <a class="brand" href="{{ url_for('index') }}">{{ t('brand') }}</a>
     <form class="languages" method="post" action="{{ url_for('language') }}" aria-label="{{ t('language') }}">
