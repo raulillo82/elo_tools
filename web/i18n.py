@@ -21,6 +21,7 @@ TEXTS = {
     "staging": ("Probak", "Pruebas"),
     "staging_banner": ("Proba-ingurunea: hemen ikusten duzuna ez da benetako tresna.",
                        "Entorno de pruebas: lo que ves aquí no es la herramienta real."),
+    "staging_back": ("Itzuli benetako tresnara", "Volver a la herramienta real"),
     "staging_bad": ("Sarbide hau ez da baliozkoa edo iraungi egin da. Sartu berriro benetako "
                     "tresnatik.",
                     "Este acceso no es válido o ha caducado. Entra de nuevo desde la "

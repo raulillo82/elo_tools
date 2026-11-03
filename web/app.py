@@ -65,6 +65,7 @@ def create_app(config=None):
         MARGIN=int(os.environ.get("ELO_MARGIN", DEFAULT_MARGIN)),
         STAGING="ELO_STAGING" in os.environ,
         STAGING_URL=os.environ.get("ELO_STAGING_URL"),
+        PRODUCTION_URL=os.environ.get("ELO_PRODUCTION_URL"),
         STAGING_KEY=read_key(os.environ.get("ELO_STAGING_KEY_FILE")))
     app.config.update(config or {})
     if "ACCOUNTS" not in app.config:
@@ -109,7 +110,7 @@ def create_app(config=None):
     def template_values():
         return {"csrf": csrf_token(), "user": g.user, "language": g.language, "languages": LANGUAGES,
                 "theme": g.theme, "t": lambda key, **values: text(g.language, key, **values),
-                "is_staging": is_staging,
+                "is_staging": is_staging, "production_url": app.config["PRODUCTION_URL"],
                 "staging_link": offers_staging and g.user is not None and can_enter_staging(g.user)}
 
     @app.after_request

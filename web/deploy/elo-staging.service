@@ -13,6 +13,7 @@ ExecStart=/usr/bin/podman run --name elo-staging --rm \
     --read-only --tmpfs /tmp \
     -e HOME=/tmp \
     -e ELO_STAGING=1 \
+    -e ELO_PRODUCTION_URL=https://raulillo82.duckdns.org/elo/ \
     -e ELO_STAGING_KEY_FILE=/secrets/staging.key \
     -v %h/elo-web-staging/data:/data:Z \
     -v %h/elo-web-staging/secrets:/secrets:ro,Z \
