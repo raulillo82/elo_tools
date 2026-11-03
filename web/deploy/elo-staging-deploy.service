@@ -1,0 +1,6 @@
+[Unit]
+Description=Despliega staging si su rama ha cambiado
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/elo-staging-deploy.sh

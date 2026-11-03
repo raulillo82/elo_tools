@@ -10,6 +10,7 @@ header nav { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; fo
 header form { margin: 0; }
 .brand { font-weight: 700; color: var(--ink); text-decoration: none; }
 main { max-width: 42rem; margin: 0 auto; padding: 1rem; }
+.staging { margin: 0; padding: .3rem 1rem; text-align: center; font-size: .9rem; font-weight: 700; color: var(--bad); background: var(--bad-soft); }
 footer { text-align: center; padding: 1rem; font-size: .85rem; }
 h1 { font-size: 1.4rem; } h2 { font-size: 1.1rem; margin-top: 0; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 1rem; margin: 0 0 1rem; }

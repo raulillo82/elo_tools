@@ -18,6 +18,17 @@ TEXTS = {
     "logout": ("Irten", "Salir"),
     "privacy": ("Pribatutasuna", "Privacidad"),
     "language": ("Hizkuntza", "Idioma"),
+    "staging": ("Probak", "Pruebas"),
+    "staging_banner": ("Proba-ingurunea: hemen ikusten duzuna ez da benetako tresna.",
+                       "Entorno de pruebas: lo que ves aquí no es la herramienta real."),
+    "staging_bad": ("Sarbide hau ez da baliozkoa edo iraungi egin da. Sartu berriro benetako "
+                    "tresnatik.",
+                    "Este acceso no es válido o ha caducado. Entra de nuevo desde la "
+                    "herramienta real."),
+    "staging_until": ("Probetan: {date} arte", "En pruebas hasta el {date}"),
+    "staging_give": ("Eman probetarako sarbidea", "Dar acceso a pruebas"),
+    "staging_remove": ("Kendu probetarako sarbidea", "Quitar acceso a pruebas"),
+    "days": ("{n} egun", "{n} días"),
     "theme": ("Itxura", "Apariencia"),
     "theme_light": ("Modu argia", "Modo claro"),
     "theme_dark": ("Modu iluna", "Modo oscuro"),

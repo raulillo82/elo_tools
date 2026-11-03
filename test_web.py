@@ -20,6 +20,7 @@ from web.accounts import AccountError, Accounts
 from web.app import create_app, limiter
 from web.lists import PlayerList, build_list
 from web.rules import check_order
+from web.staging import ENTRY_SECONDS, entry_token, read_entry
 
 PLAYERS_XML = b"""<playerslist>
 <player><fideid>1</fideid><name>Soto Rey, Ana</name><country>ESP</country><sex>F</sex>
@@ -526,6 +527,118 @@ class WebTest(unittest.TestCase):
         for target in ("https://example.com/", "//example.com/", "/\\example.com"):
             location = self.set_language("es", target).headers["Location"]
             self.assertEqual(location, "/", target)
+
+    def staging_setup(self):
+        production = create_app({"ACCOUNTS": self.accounts, "PLAYERS": self.app.config["PLAYERS"],
+                                 "SESSION_COOKIE_SECURE": False, "SESSION_COOKIE_PATH": "/",
+                                 "RATELIMIT_ENABLED": False, "DATA_FOLDER": self.folder,
+                                 "STAGING_KEY": "shared", "STAGING_URL": "https://staging.test/elo"})
+        self.staging_accounts = Accounts(Path(self.folder, "staging.db"))
+        staging = create_app({"ACCOUNTS": self.staging_accounts, "PLAYERS": self.app.config["PLAYERS"],
+                              "SESSION_COOKIE_SECURE": False, "SESSION_COOKIE_PATH": "/",
+                              "RATELIMIT_ENABLED": False, "DATA_FOLDER": self.folder,
+                              "STAGING": True, "STAGING_KEY": "shared"})
+        self.app = production
+        self.client = production.test_client()
+        self.join(is_admin=True)
+        self.user_id = self.accounts.list_users()[0]["id"]
+        return staging.test_client()
+
+    def staging_path(self):
+        location = self.client.get("/staging").headers["Location"]
+        self.assertTrue(location.startswith("https://staging.test/elo/enter/"))
+        return location.removeprefix("https://staging.test/elo")
+
+    def test_staging_needs_access_from_the_admin(self):
+        self.staging_setup()
+        self.assertEqual(self.client.get("/staging").status_code, 404)
+        self.assertNotIn('href="/staging"', self.client.get("/").get_data(as_text=True))
+        response = self.client.post(f"/admin/staging/{self.user_id}",
+                                    data={"days": "7", "csrf": self.csrf(path="/admin")})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('href="/staging"', self.client.get("/").get_data(as_text=True))
+        self.client.post(f"/admin/staging/{self.user_id}", data={"csrf": self.csrf(path="/admin")})
+        self.assertEqual(self.client.get("/staging").status_code, 404)
+
+    def test_only_admins_give_staging_access(self):
+        self.staging_setup()
+        other = self.app.test_client()
+        self.join(club="Amurrio", client=other)
+        response = other.post(f"/admin/staging/{self.user_id}",
+                              data={"days": "30", "csrf": self.csrf(other, "/")})
+        self.assertEqual(response.status_code, 403)
+
+    def test_entry_opens_staging_without_a_password(self):
+        staging = self.staging_setup()
+        self.accounts.set_staging(self.user_id, time.time() + 3600)
+        self.assertEqual(staging.get("/").status_code, 302)
+        self.assertEqual(staging.get(self.staging_path()).status_code, 302)
+        self.assertEqual(staging.get("/").status_code, 200)
+        self.assertIn('class="staging"', staging.get("/").get_data(as_text=True))
+        person = self.staging_accounts.list_users()[0]
+        self.assertEqual(person["production_id"], self.user_id)
+        self.assertEqual(person["club"], "Laudio")
+        self.assertIsNone(person["password_hash"])
+
+    def test_entry_works_once(self):
+        staging = self.staging_setup()
+        self.accounts.set_staging(self.user_id, time.time() + 3600)
+        path = self.staging_path()
+        self.assertEqual(staging.get(path).status_code, 302)
+        self.assertEqual(staging.application.test_client().get(path).status_code, 403)
+
+    def test_entry_must_be_signed_by_the_right_key(self):
+        staging = self.staging_setup()
+        forged = entry_token("other", {"id": 1, "name": "x", "club": "Laudio", "is_admin": 1,
+                                       "staging_until": time.time() + 3600})
+        self.assertEqual(staging.get(f"/enter/{forged}").status_code, 403)
+        self.assertEqual(staging.get("/enter/rubbish").status_code, 403)
+
+    def test_entry_is_short_lived(self):
+        token = entry_token("shared", {"id": 1, "name": "x", "club": "Laudio", "is_admin": 0,
+                                       "staging_until": time.time() + 3600})
+        self.assertIsNotNone(read_entry("shared", token))
+        with mock.patch("itsdangerous.timed.time.time", return_value=time.time() + ENTRY_SECONDS + 5):
+            self.assertIsNone(read_entry("shared", token))
+
+    def test_production_never_accepts_an_entry(self):
+        self.staging_setup()
+        self.accounts.set_staging(self.user_id, time.time() + 3600)
+        self.assertEqual(self.client.get(self.staging_path()).status_code, 404)
+
+    def test_staging_closes_when_the_access_ends(self):
+        staging = self.staging_setup()
+        self.accounts.set_staging(self.user_id, time.time() + 3600)
+        staging.get(self.staging_path())
+        self.staging_accounts.set_staging(self.staging_accounts.list_users()[0]["id"], time.time() - 1)
+        self.assertEqual(staging.get("/").status_code, 302)
+
+    def test_deleting_in_staging_closes_the_session(self):
+        staging = self.staging_setup()
+        self.accounts.set_staging(self.user_id, time.time() + 3600)
+        staging.get(self.staging_path())
+        self.staging_accounts.remove_devices(self.staging_accounts.list_users()[0]["id"])
+        self.assertEqual(staging.get("/").status_code, 302)
+
+    def test_a_club_that_changed_hands_replaces_the_old_account(self):
+        entry = {"name": "Ane", "club": "Laudio", "is_admin": 0, "until": time.time() + 3600}
+        accounts = Accounts(Path(self.folder, "staging.db"))
+        accounts.enter_staging({**entry, "id": 1, "nonce": "a"})
+        accounts.enter_staging({**entry, "id": 2, "nonce": "b", "name": "Jon"})
+        self.assertEqual([user["name"] for user in accounts.list_users()], ["Jon"])
+
+    def test_old_databases_get_the_new_columns(self):
+        path = Path(self.folder, "old.db")
+        database = sqlite3.connect(path)
+        database.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL,"
+                         " club TEXT UNIQUE NOT NULL, password_hash TEXT,"
+                         " is_admin INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1)")
+        database.execute("INSERT INTO users (name, club) VALUES ('Ane', 'Laudio')")
+        database.commit()
+        database.close()
+        for _ in range(2):
+            users = Accounts(path).list_users()
+        self.assertIsNone(users[0]["staging_until"])
 
     def set_theme(self, code, next_page="/login"):
         return self.client.post("/theme", data={"theme": code, "next": next_page,

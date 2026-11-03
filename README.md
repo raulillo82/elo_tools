@@ -145,6 +145,39 @@ web. Si la versión nueva no responde, vuelve a la anterior. Es el servidor quie
 pregunta, así que GitHub no puede ejecutar nada en él. El script vive en
 `~/.local/bin`: si cambia, hay que copiarlo a mano.
 
+### Staging
+
+Entorno de pruebas en `https://staging.raulillo82.duckdns.org/elo/`, separado de
+producción por el navegador: otro dominio, así que no ve sus cookies ni los equipos
+guardados.
+
+- **Qué se despliega:** la rama `staging` si existe, y `main` si no. Para probar algo,
+  `git push origin feat/x:staging`, o `--force` para sustituir lo que haya. Al acabar,
+  `git push origin --delete staging`. La Pi lo comprueba cada 5 minutos.
+- **Acceso:** se da desde `Accesos` en producción, por días. Quien lo tiene ve el enlace
+  `Pruebas` y entra sin contraseña: producción firma un permiso de un solo uso que dura
+  un minuto. Para cortar una sesión ya abierta, borra la cuenta en el admin de staging.
+- **Datos:** copias de las listas de producción, nunca `accounts.db`.
+- **Límites:** `elo-staging-deploy.sh` nunca instala nada del repositorio fuera de la
+  imagen, porque staging ejecuta código sin fusionar.
+
+Se monta una vez en el servidor:
+
+```bash
+mkdir -p ~/elo-web-staging/data ~/elo-web-staging/secrets
+git clone https://github.com/raulillo82/elo_tools.git ~/elo-web-staging/repo
+openssl rand -hex 32 > ~/elo-web-staging/secrets/secret.key
+openssl rand -hex 32 > ~/elo-web-staging/secrets/staging.key
+cp ~/elo-web-staging/secrets/staging.key ~/elo-web/secrets/
+chmod 600 ~/elo-web-staging/secrets/* ~/elo-web/secrets/staging.key
+cp ~/elo-web-staging/repo/web/deploy/elo-staging-deploy.sh ~/.local/bin/
+systemctl --user enable --now elo-staging-deploy.timer
+systemctl --user enable elo-staging.service
+```
+
+Además hacen falta el certificado de `staging.raulillo82.duckdns.org` y
+`web/deploy/nginx-staging.conf` en `/etc/nginx/conf.d/`.
+
 ## Tests
 
 ```

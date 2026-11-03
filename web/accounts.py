@@ -29,7 +29,11 @@ CREATE TABLE IF NOT EXISTS devices (
 CREATE TABLE IF NOT EXISTS invites (
     token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id),
     expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS used_entries (nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL);
 """
+#Added after the first version. production_id is only used in staging, where it
+#says who each account is in production
+NEW_COLUMNS = {"staging_until": "INTEGER", "production_id": "INTEGER"}
 
 
 class AccountError(Exception):
@@ -52,6 +56,10 @@ class Accounts:
         self.path = path
         with self.connect() as database:
             database.executescript(SCHEMA)
+            columns = {row["name"] for row in database.execute("PRAGMA table_info(users)")}
+            for name, kind in NEW_COLUMNS.items():
+                if name not in columns:
+                    database.execute(f"ALTER TABLE users ADD COLUMN {name} {kind}")
 
     def connect(self):
         database = sqlite3.connect(self.path)
@@ -136,6 +144,45 @@ class Accounts:
         stored = user["password_hash"] if user else DUMMY_HASH
         return user if check_password_hash(stored, password) and user else None
 
+    def set_staging(self, user_id, until):
+        '''
+        Gives access to staging until a time, or takes it away with None
+        '''
+        with self.connect() as database:
+            database.execute("UPDATE users SET staging_until = ? WHERE id = ?", (until, user_id))
+
+    def enter_staging(self, entry):
+        '''
+        In staging: uses a permission from production, once. Creates or updates
+        the account, and returns it with a new device token.
+        '''
+        device_token = secrets.token_urlsafe(32)
+        with self.connect() as database:
+            database.execute("DELETE FROM used_entries WHERE expires < ?", (time.time(),))
+            try:
+                database.execute("INSERT INTO used_entries VALUES (?, ?)",
+                                 (entry["nonce"], time.time() + 3600))
+            except sqlite3.IntegrityError:
+                raise AccountError("staging_bad") from None
+            #A club can change hands in production
+            for old in database.execute("SELECT id FROM users WHERE club = ? AND production_id IS NOT ?",
+                                        (entry["club"], entry["id"])).fetchall():
+                remove_user(database, old["id"])
+            values = (entry["name"], entry["club"], entry["is_admin"], entry["until"])
+            row = database.execute("SELECT id FROM users WHERE production_id = ?",
+                                   (entry["id"],)).fetchone()
+            if row:
+                user_id = row["id"]
+                database.execute("UPDATE users SET name = ?, club = ?, is_admin = ?, staging_until = ?"
+                                 " WHERE id = ?", (*values, user_id))
+            else:
+                user_id = database.execute(
+                    "INSERT INTO users (name, club, is_admin, staging_until, production_id)"
+                    " VALUES (?, ?, ?, ?, ?)", (*values, entry["id"])).lastrowid
+            database.execute("INSERT INTO devices (user_id, token_hash, added) VALUES (?, ?, ?)",
+                             (user_id, hash_token(device_token), time.time()))
+        return self.get_user(user_id), device_token
+
     def get_user(self, user_id):
         with self.connect() as database:
             return database.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -162,9 +209,13 @@ class Accounts:
             if database.execute("SELECT is_admin FROM users WHERE id = ?",
                                 (user_id,)).fetchone()["is_admin"]:
                 raise AccountError("admin_kept")
-            for table in ("devices", "invites"):
-                database.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
-            database.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            remove_user(database, user_id)
+
+
+def remove_user(database, user_id):
+    for table in ("devices", "invites"):
+        database.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+    database.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
 DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(16))

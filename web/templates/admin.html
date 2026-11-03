@@ -21,7 +21,20 @@
 {% for person in users %}
 <div class="card">
   <p><strong>{{ person['name'] }}</strong> · {{ person['club'] }} · {{ t('devices', n=person['devices']) }}</p>
+  {% if offers_staging %}
+  <form method="post" action="{{ url_for('admin_staging', user_id=person['id']) }}" class="row">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% if (person['staging_until'] or 0) > now %}
+    <span>{{ t('staging_until', date=person['staging_until']|int|date) }}</span>
+    <button>{{ t('staging_remove') }}</button>
+    {% else %}
+    <select name="days" aria-label="{{ t('staging') }}">{% for days in staging_days %}<option value="{{ days }}">{{ t('days', n=days) }}</option>{% endfor %}</select>
+    <button>{{ t('staging_give') }}</button>
+    {% endif %}
+  </form>
+  {% endif %}
   <div class="row">
+    {% if not is_staging %}
     <form method="post" action="{{ url_for('admin_invite') }}">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="user_id" value="{{ person['id'] }}">
@@ -30,6 +43,7 @@
     <form method="post" action="{{ url_for('admin_devices', user_id=person['id']) }}">
       <input type="hidden" name="csrf" value="{{ csrf }}"><button>{{ t('remove_devices') }}</button>
     </form>
+    {% endif %}
     {% if not person['is_admin'] %}
     <form method="post" action="{{ url_for('admin_delete', user_id=person['id']) }}">
       <input type="hidden" name="csrf" value="{{ csrf }}"><button class="danger">{{ t('delete') }}</button>
