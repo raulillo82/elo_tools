@@ -6,7 +6,7 @@ After=elo-web.service
 [Service]
 Type=oneshot
 # After a reboot the timer catches up at once, and elo-web counts as started as
-# soon as podman run is launched, a few seconds before the container exists
+# soon as podman is called, a few seconds before the container exists
 ExecStartPre=/usr/bin/sh -c 'i=0; until /usr/bin/podman container exists elo-web; do i=$$((i+1)); [ $$i -gt 60 ] && exit 1; sleep 5; done'
 # Inside the web's container: a second container on the same folder would take
 # its SELinux label with :Z, and the web would lose access to its data
