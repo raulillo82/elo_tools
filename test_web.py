@@ -34,11 +34,35 @@ PLAYERS_XML = b"""<playerslist>
 <player><fideid>5</fideid><name>Soto, Fritz</name><country>GER</country><sex>M</sex>
 <rating>0</rating><birthday>1960</birthday><flag></flag></player>
 </playerslist>"""
+#January has only rated players, as FIDE's archive. 1 rose, 2 fell, 4 kept it
+#and 3 has no rating now. 6 isn't in the list
+JANUARY_XML = b"""<playerslist>
+<player><fideid>1</fideid><name>Soto Rey, Ana</name><country>ESP</country><rating>1755</rating></player>
+<player><fideid>2</fideid><name>Roble Mar, Luis</name><country>ESP</country><rating>1680</rating></player>
+<player><fideid>3</fideid><name>Iba\xc3\xb1ez Soto, I\xc3\xb1aki</name><country>ESP</country><rating>1400</rating></player>
+<player><fideid>4</fideid><name>Soto, Hans</name><country>GER</country><rating>2100</rating></player>
+<player><fideid>6</fideid><name>Mar, Eva</name><country>ESP</country><rating>0</rating></player>
+</playerslist>"""
 PASSWORD = "contrasena-larga"
 
 
 def write_list(folder, name="players-2026-10.sqlite"):
     build_list(io.BytesIO(PLAYERS_XML), Path(folder, name))
+
+
+def write_january(folder, year=2026):
+    lists.build_january(io.BytesIO(JANUARY_XML), Path(folder, f"january-{year}.sqlite"))
+
+
+def fake_download(content):
+    data = io.BytesIO()
+    with ZipFile(data, "w") as archive:
+        info = ZipInfo("list.xml", date_time=(2026, 10, 30, 0, 0, 0))
+        archive.writestr(info, content)
+    response = mock.MagicMock()
+    response.__enter__.return_value = io.BytesIO(data.getvalue())
+    response.__enter__.return_value.headers = {"Last-Modified": "date1"}
+    return response
 
 
 TEAM_PAGE = """<table><tr><th>Brd.</th><th>Name</th><th>FIDE ID</th></tr>
@@ -195,13 +219,89 @@ class PlayerListTest(unittest.TestCase):
 
     def test_newest_list_and_label(self):
         write_list(self.folder, "players-2027-01.sqlite")
-        self.assertEqual(self.players.label("es"), {"text": "enero de 2027", "official": True})
-        self.assertEqual(self.players.label(), {"text": "2027ko urtarrila", "official": True})
+        self.assertEqual(self.players.label("es"),
+                         {"text": "enero de 2027", "official": True, "january": None})
+        self.assertEqual(self.players.label(),
+                         {"text": "2027ko urtarrila", "official": True, "january": None})
 
     def test_chosen_list(self):
         write_list(self.folder, "players-2027-01.sqlite")
         chosen = PlayerList(self.folder, "2026-10")
-        self.assertEqual(chosen.label("es"), {"text": "octubre de 2026", "official": False})
+        self.assertEqual(chosen.label("es"),
+                         {"text": "octubre de 2026", "official": False, "january": None})
+
+
+class JanuaryTest(unittest.TestCase):
+    def setUp(self):
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.folder = folder.name
+        write_list(self.folder)
+        write_january(self.folder)
+        self.players = PlayerList(self.folder)
+
+    def test_the_january_before_the_list(self):
+        self.assertEqual(lists.january_year(2026, 11), 2026)
+        self.assertEqual(lists.january_year(2026, 2), 2026)
+        #A January list is compared with the one of the year before
+        self.assertEqual(lists.january_year(2027, 1), 2026)
+
+    def test_ratings_of_january(self):
+        found = self.players.get([1, 2, 3, 4])
+        self.assertEqual({fide_id: player["january"] for fide_id, player in found.items()},
+                         {1: 1755, 2: 1680, 3: 1400, 4: 2100})
+
+    def test_rated_now_but_not_in_january(self):
+        build_list(io.BytesIO(PLAYERS_XML.replace(b"<fideid>4</fideid>", b"<fideid>6</fideid>")),
+                   Path(self.folder, "players-2026-10.sqlite"))
+        self.assertIsNone(self.players.get([6])[6]["january"])
+
+    def test_search_has_january_too(self):
+        self.assertEqual(self.players.search("ana soto")[0][0]["january"], 1755)
+
+    def test_only_ids_and_ratings_in_the_file(self):
+        database = sqlite3.connect(Path(self.folder, "january-2026.sqlite"))
+        columns = [row[1] for row in database.execute("PRAGMA table_info(ratings)")]
+        count = database.execute("SELECT COUNT(*) FROM ratings").fetchone()[0]
+        database.close()
+        self.assertEqual((columns, count), (["fideid", "rating"], 4))
+
+    def test_label_says_which_january(self):
+        self.assertEqual(self.players.label("es")["january"], 2026)
+        write_list(self.folder, "players-2027-01.sqlite")
+        self.assertEqual(self.players.label("es")["january"], 2026)
+
+    def test_without_the_right_january_nothing_changes(self):
+        write_list(self.folder, "players-2027-02.sqlite")
+        self.assertIsNone(self.players.label("es")["january"])
+        self.assertNotIn("january", self.players.get([1])[1])
+        self.assertNotIn("january", self.players.search("ana soto")[0][0])
+
+    def update(self):
+        with mock.patch.object(lists, "urlopen", return_value=fake_download(JANUARY_XML)) as url:
+            path = lists.update_january(self.folder)
+        return path, url
+
+    def test_downloads_the_january_it_needs_and_removes_the_old_one(self):
+        write_list(self.folder, "players-2027-02.sqlite")
+        path, url = self.update()
+        self.assertEqual(path.name, "january-2027.sqlite")
+        self.assertIn("standard_jan27frl_xml.zip", url.call_args.args[0])
+        self.assertEqual(sorted(p.name for p in Path(self.folder).glob("january-*")),
+                         ["january-2027.sqlite"])
+        self.assertEqual(self.players.get([2])[2]["january"], 1680)
+
+    def test_doesnt_download_it_twice(self):
+        path, url = self.update()
+        self.assertIsNone(path)
+        url.assert_not_called()
+
+    def test_nothing_without_a_list(self):
+        for path in Path(self.folder).glob("*.sqlite"):
+            path.unlink()
+        path, url = self.update()
+        self.assertIsNone(path)
+        url.assert_not_called()
 
 
 class UpdateListTest(unittest.TestCase):
@@ -433,6 +533,24 @@ class WebTest(unittest.TestCase):
         before = "\n".join(self.accounts.connect().iterdump())
         self.api("check", {"entries": [1, 2]})
         self.assertEqual("\n".join(self.accounts.connect().iterdump()), before)
+
+    def test_check_gives_the_january_ratings(self):
+        self.join()
+        self.assertEqual(self.api("check", {"entries": [1, None]}).get_json()["januaries"],
+                         [None, None])
+        write_january(self.folder)
+        answer = self.api("check", {"entries": [1, None, 3]}).get_json()
+        self.assertEqual(answer["januaries"], [1755, None, 1400])
+        self.assertEqual(answer["list"]["january"], 2026)
+
+    def test_the_notice_says_since_when(self):
+        self.join()
+        self.set_language("es", "/")
+        self.assertNotIn("el cambio desde", self.client.get("/").get_data(as_text=True))
+        write_january(self.folder)
+        text = self.client.get("/").get_data(as_text=True)
+        self.assertIn("el cambio desde enero de 2026", text)
+        self.assertIn('data-january="2026"', text)
 
     def test_lookup(self):
         self.join()

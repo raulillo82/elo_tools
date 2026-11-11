@@ -37,7 +37,8 @@ healthy() {
 # Never accounts.db: staging has its own, without passwords
 copy_data() {
     local file name changed=1
-    for file in "$PRODUCTION_DATA"/players-*.sqlite "$PRODUCTION_DATA"/list_info.json \
+    for file in "$PRODUCTION_DATA"/players-*.sqlite "$PRODUCTION_DATA"/january-*.sqlite \
+                "$PRODUCTION_DATA"/list_info.json \
                 "$PRODUCTION_DATA"/rosters*.json; do
         [ -f "$file" ] || continue
         name=$(basename "$file")

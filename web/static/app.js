@@ -12,7 +12,11 @@ const DRAFT_KEY = "elo-draft";
 const MAX_PLAYERS = 30;
 const MARGIN = Number($("list-label").dataset.margin);
 const TEXTS = JSON.parse($("texts").textContent);
+const JANUARY = Number($("list-label").dataset.january) || null; // The year of the January compared with
 let team = []; // {id, name, rating, inactive}. id is null for players typed by hand
+// FIDE ID -> January rating, or null if they had none. Only in memory, so
+// saved teams never keep an old one
+const januaries = new Map();
 let searchTimer = null;
 let roster = []; // Last season's players of the club of this user
 let openedTeam = null; // The saved team being edited, which can be saved again
@@ -47,6 +51,38 @@ function button(text, title, action) {
   node.title = title;
   node.setAttribute("aria-label", title);
   node.addEventListener("click", action);
+  return node;
+}
+
+// Takes "january" out of the players the server sends, into januaries
+function remember(players) {
+  players.forEach((player) => {
+    if ("january" in player) januaries.set(player.id, player.january);
+    delete player.january;
+  });
+  return players;
+}
+
+function rememberChecked(players, answer) {
+  if (!answer.januaries) return;
+  players.forEach((player, index) => { if (player.id) januaries.set(player.id, answer.januaries[index]); });
+}
+
+// "(+45)" in green, "(−30)" in red. The notice at the top says since when
+function changeTag(player) {
+  if (!player.id || !januaries.has(player.id)) return null;
+  const january = januaries.get(player.id);
+  const change = eloChange(player.rating, january);
+  if (!change) return null;
+  const tag = element("span", `(${change.text ?? t("new_rating")})`, `change ${change.kind}`);
+  tag.title = january === null ? t("no_january", {year: JANUARY})
+    : t("january_was", {year: JANUARY, rating: january});
+  return tag;
+}
+
+function withChange(node, player) {
+  const tag = changeTag(player);
+  if (tag) node.append(" ", tag);
   return node;
 }
 
@@ -184,7 +220,7 @@ function render(wrong = null) {
     grip.addEventListener("pointerdown", (event) => startDrag(event, index));
     row.append(grip, element("span", index + 1, "board"));
     const who = element("div", player.name, "who");
-    const details = element("small", player.rating ?? t("no_elo"));
+    const details = withChange(element("small", player.rating ?? t("no_elo")), player);
     if (range && range.first < range.last) {
       anyRange = true;
       details.append(" · ", rangeTag(range));
@@ -229,7 +265,7 @@ function buildRoster() {
       }
     });
     label.dataset.leagues = player.leagues.join(" ");
-    label.append(box, element("span", `${player.name} · ${player.rating ?? t("no_elo")}`));
+    label.append(box, withChange(element("span", `${player.name} · ${player.rating ?? t("no_elo")}`), player));
     if (hasBasqueLeague(roster)) {
       label.append(element("small", player.leagues.map((league) => t(`tag_${league}`)).join(" · ")));
     }
@@ -255,7 +291,7 @@ function showRoster() {
 async function loadRoster() {
   try {
     const answer = await post("roster", {});
-    roster = answer.players;
+    roster = remember(answer.players);
     if (roster.length) {
       $("roster-title").textContent = t("club_players", {season: answer.season, n: roster.length});
       $("roster-area").hidden = false;
@@ -284,6 +320,7 @@ async function search() {
   if (text.split(/\s+/).filter((word) => word.length > 1).length < 2) return area.replaceChildren();
   try {
     const answer = await post("search", {text});
+    remember(answer.results);
     area.replaceChildren();
     if (!answer.results.length) {
       area.append(element("p", t("nothing_found"), "hint"));
@@ -316,6 +353,7 @@ async function addIds() {
   if (ids.some((id) => !/^\d+$/.test(id))) return alert(t("numbers_only"));
   try {
     const answer = await post("lookup", {ids: ids.map(Number)});
+    remember(answer.players);
     const byId = new Map(answer.players.map((player) => [player.id, player]));
     ids.map(Number).forEach((id) => { if (byId.has(id)) add(byId.get(id)); });
     $("ids").value = answer.missing.join(" ");
@@ -349,6 +387,7 @@ async function check() {
     answer.ratings.forEach((rating, index) => {
       if (team[index].id) team[index].rating = rating;
     });
+    rememberChecked(team, answer);
     const wrong = new Set(answer.errors.flatMap((error) => [error.upper, error.lower]));
     render(wrong);
     verdict.replaceChildren();
@@ -431,6 +470,7 @@ async function refreshRatings() {
   try {
     const answer = await post("check", {entries: players.map((player) => player.id)});
     players.forEach((player, index) => { player.rating = answer.ratings[index]; });
+    rememberChecked(players, answer);
     if (!$("verdict").hasChildNodes()) render();
   } catch {
     // It's only a help
@@ -559,5 +599,6 @@ if (draft) {
   team = restored.team;
 }
 render();
+if (draft) refreshRatings(); // To show the changes since January again
 showSaved();
 loadRoster();

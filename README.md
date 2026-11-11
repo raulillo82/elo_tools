@@ -108,6 +108,11 @@ que sigue siendo por correo a la federación.
 - **Lista FIDE:** usa la más nueva, o la que indique `ELO_LIST` (por ejemplo
   `2027-01`). Solo contiene nombre, ELO, estado e ID: nunca el año de nacimiento
   ni el sexo. La actualiza cada noche `elo-list-update.timer`.
+- **Cambio desde enero:** junto a cada ELO sale entre paréntesis lo que ha cambiado
+  desde la lista de enero, en verde o en rojo, y `nuevo` si entonces no tenía ELO.
+  Con la lista de enero se compara con la del año anterior. El mismo timer descarga
+  esa lista del archivo de FIDE en `january-AAAA.sqlite`, solo con ID y ELO. Sin
+  ese archivo la web funciona igual, sin los paréntesis.
 - **Órdenes de fuerzas:** el servidor los comprueba y no los guarda. El guardado
   es opcional, está desactivado por defecto y se queda en el navegador. Se
   pueden descargar en Excel, también para Google Sheets, o en una copia de seguridad

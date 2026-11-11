@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<p class="notice" id="list-label" data-user="{{ user['id'] }}" data-club="{{ user['club'] }}" data-margin="{{ margin }}">
+<p class="notice" id="list-label" data-user="{{ user['id'] }}" data-club="{{ user['club'] }}" data-margin="{{ margin }}" data-january="{{ list_label['january'] or '' }}">
   {{ t('list_is', list=list_label['text']) }}
+  {% if list_label['january'] %}{{ t('change_since', year=list_label['january']) }}{% endif %}
   {% if not list_label['official'] %}<strong>{{ t('provisional') }}</strong> {{ t('provisional_text') }}{% endif %}
 </p>
 
@@ -77,6 +78,7 @@
 <script src="{{ url_for('static', filename='team_names.js') }}"></script>
 <script src="{{ url_for('static', filename='roster_filter.js') }}"></script>
 <script src="{{ url_for('static', filename='board_moves.js') }}"></script>
+<script src="{{ url_for('static', filename='elo_change.js') }}"></script>
 <script src="{{ url_for('static', filename='xlsx.js') }}"></script>
 <script src="{{ url_for('static', filename='app.js') }}"></script>
 {% endblock %}

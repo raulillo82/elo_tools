@@ -12,6 +12,7 @@ import sqlite3
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
+from contextlib import closing
 from datetime import date
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -25,6 +26,8 @@ PLAYERS_URL = "https://ratings.fide.com/download/players_list_xml.zip"
 ARCHIVE_URL = "https://ratings.fide.com/download/standard_{name}frl_xml.zip"
 ARCHIVE_MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
 INFO_FILE = "list_info.json"
+#Only the ratings of the January list that the current one is compared with
+JANUARY_FILE = "january-{year:04}.sqlite"
 MAX_RESULTS = 10
 #Unrated players from other countries can't be found: they can be typed by hand
 HOME_COUNTRY = "ESP"
@@ -76,13 +79,51 @@ def build_list(xml_file, path):
     os.replace(temporary, path)
 
 
+def read_ratings(xml_file):
+    '''
+    Yields (fideid, rating) for each rated player
+    '''
+    for _, element in ET.iterparse(xml_file):
+        if element.tag != "player":
+            continue
+        rating = int(element.findtext("rating") or 0)
+        if rating:
+            yield int(element.findtext("fideid")), rating
+        element.clear()
+
+
+def build_january(xml_file, path):
+    '''
+    Writes the ratings of a January list. Replaces the old file only at the end
+    '''
+    temporary = path.with_suffix(".tmp")
+    temporary.unlink(missing_ok=True)
+    database = sqlite3.connect(temporary)
+    database.execute("CREATE TABLE ratings (fideid INTEGER PRIMARY KEY, rating INTEGER)")
+    database.executemany("INSERT OR REPLACE INTO ratings VALUES (?, ?)", read_ratings(xml_file))
+    database.commit()
+    database.close()
+    os.replace(temporary, path)
+
+
+def january_year(year, month):
+    '''
+    Returns the year of the January to compare a list with: the last one before
+    it, so a January list is compared with the one of the year before
+    '''
+    return year - 1 if month == 1 else year
+
+
+def archive_url(year, month):
+    return ARCHIVE_URL.format(name=f"{ARCHIVE_MONTHS[month - 1]}{year % 100:02}")
+
+
 def archive_exists(year, month):
     '''
     Returns True if FIDE has published the list of that month
     '''
-    name = f"{ARCHIVE_MONTHS[month - 1]}{year % 100:02}"
     try:
-        with urlopen(Request(ARCHIVE_URL.format(name=name), method="HEAD"), timeout=30):
+        with urlopen(Request(archive_url(year, month), method="HEAD"), timeout=30):
             return True
     except (URLError, TimeoutError):
         return False
@@ -129,6 +170,33 @@ def update_list(folder):
     return path
 
 
+def update_january(folder):
+    '''
+    Downloads the January list that the newest list is compared with, if it's
+    not there yet, and removes the ones of other years. Returns the new file,
+    or None
+    '''
+    folder = Path(folder)
+    month = PlayerList(folder).month()
+    if month is None:
+        return None
+    year = january_year(*month)
+    path = folder / JANUARY_FILE.format(year=year)
+    new_file = None
+    if not path.exists():
+        with tempfile.TemporaryFile(dir=folder) as data:
+            with urlopen(archive_url(year, 1), timeout=300) as resp:
+                while chunk := resp.read(1024 * 1024):
+                    data.write(chunk)
+            with ZipFile(data) as archive, archive.open(archive.namelist()[0]) as xml_file:
+                build_january(xml_file, path)
+        new_file = path
+    for old in folder.glob("january-*.sqlite"):
+        if old != path:
+            old.unlink()
+    return new_file
+
+
 class PlayerList:
     '''
     The list to use: the one chosen with ELO_LIST, for example "2027-01", or
@@ -144,21 +212,68 @@ class PlayerList:
         files = sorted(self.folder.glob("players-*.sqlite"))
         return files[-1] if files else None
 
-    def connect(self):
+    def month(self):
+        '''
+        Returns the (year, month) of the list, or None if there's none
+        '''
         path = self.path()
         if path is None or not path.exists():
+            return None
+        year, month = re.search(r"(\d{4})-(\d{2})", path.name).groups()
+        return int(year), int(month)
+
+    def connect(self):
+        if self.month() is None:
             raise FileNotFoundError("No hay ninguna lista FIDE")
-        return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+        return sqlite3.connect(f"file:{self.path()}?mode=ro", uri=True)
+
+    def january_path(self):
+        '''
+        Returns the January list to compare with, or None if it's not there
+        '''
+        month = self.month()
+        if month is None:
+            return None
+        path = self.folder / JANUARY_FILE.format(year=january_year(*month))
+        return path if path.exists() else None
 
     def label(self, language=DEFAULT_LANGUAGE):
         '''
-        Returns what to tell users about the list
+        Returns what to tell users about the list. "january" is the year of the
+        January the changes are counted from, or None if there's no list to do it
         '''
-        path = self.path()
-        if path is None or not path.exists():
-            return {"text": "-", "official": False}
-        year, month = re.search(r"(\d{4})-(\d{2})", path.name).groups()
-        return {"text": month_label(language, int(year), int(month)), "official": month == "01"}
+        month = self.month()
+        if month is None:
+            return {"text": "-", "official": False, "january": None}
+        return {"text": month_label(language, *month), "official": month[1] == 1,
+                "january": january_year(*month) if self.january_path() else None}
+
+    def januaries(self, fide_ids):
+        '''
+        Returns a dictionary with the January ratings of those FIDE IDs. Those
+        without one aren't in it. None if there's no January list
+        '''
+        path = self.january_path()
+        if path is None:
+            return None
+        with closing(sqlite3.connect(f"file:{path}?mode=ro", uri=True)) as database:
+            found = {}
+            for fide_id in fide_ids:
+                row = database.execute("SELECT rating FROM ratings WHERE fideid = ?",
+                                       (fide_id,)).fetchone()
+                if row:
+                    found[fide_id] = row[0]
+        return found
+
+    def with_januaries(self, players):
+        '''
+        Adds "january" to each player, if there's a January list
+        '''
+        januaries = self.januaries([player["id"] for player in players])
+        if januaries is not None:
+            for player in players:
+                player["january"] = januaries.get(player["id"])
+        return players
 
     def get(self, fide_ids):
         '''
@@ -171,6 +286,7 @@ class PlayerList:
                                        " WHERE fideid = ?", (fide_id,)).fetchone()
                 if row:
                     found[fide_id] = player_dict(row)
+        self.with_januaries(list(found.values()))
         return found
 
     def search(self, text):
@@ -187,7 +303,7 @@ class PlayerList:
                  " ORDER BY p.rating IS NULL, p.rating DESC, p.name LIMIT ?")
         with self.connect() as database:
             rows = database.execute(query, [*words, MAX_RESULTS + 1]).fetchall()
-        return [player_dict(row) for row in rows[:MAX_RESULTS]], len(rows) > MAX_RESULTS
+        return self.with_januaries([player_dict(row) for row in rows[:MAX_RESULTS]]), len(rows) > MAX_RESULTS
 
 
 def player_dict(row):
@@ -197,3 +313,7 @@ def player_dict(row):
 if __name__ == "__main__":
     new_file = update_list(sys.argv[1])
     print(f"Lista nueva: {new_file}" if new_file else "La lista no ha cambiado")
+    #Also when the list hasn't changed: the January one may be missing
+    january = update_january(sys.argv[1])
+    if january:
+        print(f"Lista de enero nueva: {january}")
