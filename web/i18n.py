@@ -69,6 +69,8 @@ TEXTS = {
     "provisional_text": ("ordena ofiziala urtarrileko zerrendarekin egiten da, urte bakoitzeko "
                          "oinarrien arabera.",
                          "el orden oficial se hace con la lista de enero, según las bases del año."),
+    "change_since": ("Parentesi artean, {year}ko urtarrileko zerrendarekiko aldea.",
+                     "Entre paréntesis, el cambio desde enero de {year}."),
     "team": ("Taldea", "Equipo"),
     "roster_show": ("Erakutsi", "Mostrar"),
     "league_both": ("Biak", "Ambas"),
@@ -168,6 +170,9 @@ TEXTS = {
 #Texts used by the browser, in app.js
 BROWSER_TEXTS = {
     "no_elo": ("ELOrik gabe", "sin ELO"),
+    "january_was": ("{year}ko urtarrilean: {rating}", "Enero de {year}: {rating}"),
+    "new_rating": ("berria", "nuevo"),
+    "no_january": ("{year}ko urtarrilean ELOrik gabe", "Sin ELO en enero de {year}"),
     "tag_alava": ("Araba", "Álava"),
     "tag_honor": ("Ohorezko Maila", "División de Honor"),
     "tag_primera": ("Lehen Maila", "Primera"),

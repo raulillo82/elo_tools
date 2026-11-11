@@ -283,8 +283,9 @@ def create_app(config=None):
             abort(400)
         found = players.get(valid_ids([entry for entry in entries if entry is not None]))
         ratings = [found.get(entry, {}).get("rating") for entry in entries]
+        januaries = [found.get(entry, {}).get("january") for entry in entries]
         return jsonify(errors=check_order(ratings, app.config["MARGIN"]), ratings=ratings,
-                       list=players.label(g.language))
+                       januaries=januaries, list=players.label(g.language))
 
     @app.get("/admin")
     @admin_required

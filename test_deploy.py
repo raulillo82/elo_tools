@@ -190,11 +190,12 @@ class StagingDeployTest(Sandbox, unittest.TestCase):
     def test_lists_are_copied_but_never_the_accounts(self):
         production = self.root / "production"
         (production / "players-2027-01.sqlite").write_text("list")
+        (production / "january-2026.sqlite").write_text("january")
         (production / "rosters.json").write_text("{}")
         (production / "accounts.db").write_text("secrets")
         self.assertEqual(self.run_deploy().returncode, 0)
         names = sorted(path.name for path in (self.root / "data").iterdir())
-        self.assertEqual(names, ["players-2027-01.sqlite", "rosters.json"])
+        self.assertEqual(names, ["january-2026.sqlite", "players-2027-01.sqlite", "rosters.json"])
         self.assertIn("restart elo-staging.service", self.called())
         self.calls.write_text("")
         self.run_deploy()

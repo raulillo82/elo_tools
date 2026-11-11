@@ -41,6 +41,7 @@ button.link { min-height: 0; padding: 0; border: 0; background: none; color: var
 #live-status.warning { color: var(--warn); font-weight: 600; }
 .board { width: 1.8rem; text-align: right; font-weight: 700; flex: none; }
 .who { flex: 1; min-width: 0; overflow-wrap: anywhere; } .who small { display: block; color: var(--muted); }
+.change { color: var(--muted); white-space: nowrap; } .change.up { color: var(--good); font-weight: 600; } .change.down { color: var(--bad); font-weight: 600; }
 .tools { display: flex; gap: .25rem; flex: none; } .tools button { min-width: 40px; min-height: 40px; padding: 0; justify-content: center; }
 .tools button.faded { opacity: .35; }
 .result { display: block; width: 100%; text-align: left; margin-bottom: .3rem; }
